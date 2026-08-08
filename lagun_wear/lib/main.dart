@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
@@ -20,10 +19,11 @@ class LagunWearApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0D0D15),
+        scaffoldBackgroundColor: const Color(0xFF0A0712),
         colorScheme: const ColorScheme.dark(
           primary: Colors.cyanAccent,
-          secondary: Colors.deepPurpleAccent,
+          secondary: Colors.purpleAccent,
+          surface: Color(0xFF141024),
         ),
         useMaterial3: true,
       ),
@@ -45,9 +45,10 @@ class _WatchHomeScreenState extends State<WatchHomeScreen> {
   final List<Socket> _connectedClients = [];
 
   bool _isBroadcasting = false;
+  bool _isRunning = true;
   int _readingTimeSec = 0;
-  int _articlesRead = 0;
-  int _scrollActivity = 0;
+  int _stressLevel = 0;
+  int _sleepQuality = 0;
 
   Timer? _telemetryTimer;
 
@@ -71,32 +72,50 @@ class _WatchHomeScreenState extends State<WatchHomeScreen> {
   }
 
   void _startTelemetry() {
+    _telemetryTimer?.cancel();
     _telemetryTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!_isRunning) return;
       setState(() {
         _readingTimeSec += 1;
-        if (_readingTimeSec % 15 == 0) {
-          _articlesRead += 1;
-        }
-        _scrollActivity = 60 + Random().nextInt(35);
+        _stressLevel = 40 + Random().nextInt(45);
+        _sleepQuality = 15 + Random().nextInt(45);
       });
 
       _broadcastData();
     });
   }
 
-  Future<void> _broadcastData() async {
-    final Map<String, dynamic> telemetryData = {
-      "time_sec": _readingTimeSec,
-      "articles": _articlesRead,
-      "activity": _scrollActivity,
-    };
+  void _toggleRunning() {
+    setState(() {
+      _isRunning = !_isRunning;
+      if (!_isRunning) {
+        _telemetryTimer?.cancel();
+        _blePeripheral.stop();
+        _isBroadcasting = false;
+      } else {
+        _startTelemetry();
+      }
+    });
+  }
 
-    final String jsonString = jsonEncode(telemetryData);
-    final Uint8List payloadBytes = Uint8List.fromList(utf8.encode(jsonString));
+  Future<void> _broadcastData() async {
+    if (!_isRunning) return;
+
+    int safeTime = _readingTimeSec.clamp(0, 65535);
+    int safeSleep = _sleepQuality.clamp(0, 255);
+    int safeStress = _stressLevel.clamp(0, 255);
+
+    final Uint8List payloadBytes = Uint8List.fromList([
+      (safeTime >> 8) & 0xFF,
+      safeTime & 0xFF,
+      safeSleep,
+      safeStress,
+    ]);
 
     for (final client in _connectedClients) {
       try {
-        client.writeln(jsonString);
+        client.add(payloadBytes);
+        await client.flush();
       } catch (_) {}
     }
 
@@ -132,76 +151,140 @@ class _WatchHomeScreenState extends State<WatchHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isConnected = _connectedClients.isNotEmpty;
+
     return Scaffold(
+      backgroundColor: const Color(0xFF0A0712),
       body: Center(
         child: Container(
-          width: 200,
-          height: 200,
+          width: 224,
+          height: 224,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
+            color: const Color(0xFF141024),
             border: Border.all(
-              color: _isBroadcasting || _connectedClients.isNotEmpty
-                  ? Colors.cyanAccent
-                  : Colors.grey,
+              color: _isRunning
+                  ? (isConnected || _isBroadcasting
+                      ? Colors.cyanAccent.withOpacity(0.6)
+                      : Colors.purpleAccent.withOpacity(0.4))
+                  : Colors.redAccent.withOpacity(0.6),
               width: 2,
             ),
-            gradient: RadialGradient(
-              colors: [
-                Colors.cyanAccent.withValues(alpha: 0.1),
-                Colors.transparent,
-              ],
-            ),
+            boxShadow: [
+              BoxShadow(
+                color: (_isRunning ? Colors.cyanAccent : Colors.redAccent).withOpacity(0.15),
+                blurRadius: 16,
+                spreadRadius: 2,
+              ),
+            ],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(12.0),
+            padding: const EdgeInsets.all(14.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text(
-                  "LAGUN WEAR",
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                    color: Colors.cyanAccent,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  "${_readingTimeSec}s",
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildMiniMetric("NOTICIAS", "$_articlesRead"),
-                    _buildMiniMetric("ACTIVO", "$_scrollActivity%"),
-                  ],
-                ),
-                const SizedBox(height: 6),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.sync,
-                      size: 10,
-                      color: _connectedClients.isNotEmpty
-                          ? Colors.greenAccent
-                          : Colors.orangeAccent,
+                    Image.asset(
+                      'assets/brand/logo.png',
+                      height: 14,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.bolt, size: 14, color: Colors.cyanAccent),
                     ),
                     const SizedBox(width: 4),
-                    Text(
-                      _connectedClients.isNotEmpty
-                          ? "MÓVIL CONECTADO"
-                          : "ESPERANDO MÓVIL",
-                      style: const TextStyle(fontSize: 8, color: Colors.grey),
+                    const Text(
+                      "LAGUN WEAR",
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        color: Colors.cyanAccent,
+                      ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  "TIEMPO LECTURA",
+                  style: TextStyle(
+                    fontSize: 7,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                Text(
+                  "${_readingTimeSec}s",
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildMiniMetric("ESTRÉS", "$_stressLevel%", _stressLevel > 70 ? Colors.redAccent : Colors.cyanAccent),
+                    _buildMiniMetric("SUEÑO", "$_sleepQuality%", Colors.amberAccent),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: isConnected ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: isConnected ? Colors.greenAccent.withOpacity(0.4) : Colors.orangeAccent.withOpacity(0.4),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: isConnected ? Colors.greenAccent : Colors.orangeAccent,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        isConnected ? "LIVE" : "SYNC",
+                        style: TextStyle(
+                          fontSize: 7,
+                          fontWeight: FontWeight.bold,
+                          color: isConnected ? Colors.greenAccent : Colors.orangeAccent,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                SizedBox(
+                  height: 22,
+                  child: ElevatedButton.icon(
+                    onPressed: _toggleRunning,
+                    icon: Icon(
+                      _isRunning ? Icons.pause : Icons.play_arrow,
+                      size: 10,
+                    ),
+                    label: Text(
+                      _isRunning ? "PAUSAR" : "REANUDAR",
+                      style: const TextStyle(fontSize: 8, fontWeight: FontWeight.bold, letterSpacing: 0.8),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _isRunning ? Colors.orangeAccent.withOpacity(0.8) : Colors.greenAccent.withOpacity(0.8),
+                      foregroundColor: Colors.black,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      minimumSize: const Size(0, 20),
+                      elevation: 0,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -211,19 +294,20 @@ class _WatchHomeScreenState extends State<WatchHomeScreen> {
     );
   }
 
-  Widget _buildMiniMetric(String label, String value) {
+  Widget _buildMiniMetric(String label, String value, Color valueColor) {
     return Column(
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 8, color: Colors.white54),
+          style: const TextStyle(fontSize: 7, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 0.5),
         ),
+        const SizedBox(height: 1),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 13,
+          style: TextStyle(
+            fontSize: 11,
             fontWeight: FontWeight.bold,
-            color: Colors.cyanAccent,
+            color: valueColor,
           ),
         ),
       ],
