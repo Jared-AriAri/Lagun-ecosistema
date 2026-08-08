@@ -1,0 +1,30 @@
+<div class="tv-detail-layout" *ngIf="!loading && item">
+    <div class="tv-detail-backdrop"
+        [style.background-image]="item.cover_image_url ? 'url(' + item.cover_image_url + ')' : null"></div>
+    <div class="tv-detail-overlay"></div>
+
+    <header class="tv-detail-header">
+        <button class="tv-back-btn" (click)="goBack()">
+            ← Volver a LAGUN TV <span class="btn-hint">(Presiona Backspace / Esc / Flecha Izq)</span>
+        </button>
+    </header>
+
+    <main class="tv-detail-content">
+        <div class="tv-detail-meta">
+            <span class="card-tag">{{ item.rating ? 'RESEÑA' : 'NOTICIA' }}</span>
+            <span *ngIf="item.rating" class="card-score">{{ item.rating }}/10</span>
+        </div>
+
+        <h1 class="tv-detail-title">{{ item.title }}</h1>
+
+        <p class="tv-detail-excerpt" *ngIf="item.excerpt">{{ item.excerpt }}</p>
+
+        <div class="tv-detail-body line-clamp-6" *ngIf="item.content">
+            {{ item.content }}
+        </div>
+    </main>
+</div>
+
+<div class="tv-detail-layout flex items-center justify-center" *ngIf="loading">
+    <h1 class="tv-title">Cargando publicación...</h1>
+</div>

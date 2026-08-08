@@ -1,0 +1,144 @@
+.tv-confirm-container {
+    width: 100vw;
+    height: 100vh;
+    background-color: #0a0712;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #ffffff;
+    box-sizing: border-box;
+}
+
+.tv-confirm-card {
+    background: #140f26;
+    border: 2px solid #2a2040;
+    border-radius: 20px;
+    padding: 35px 50px;
+    width: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.tv-confirm-logo {
+    height: 40px;
+    margin-bottom: 20px;
+}
+
+.tv-icon-wrapper {
+    margin-bottom: 15px;
+}
+
+.tv-mail-icon {
+    font-size: 3.5rem;
+}
+
+.tv-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: #ffffff;
+}
+
+.tv-subtitle {
+    font-size: 1rem;
+    color: #a19bb8;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.tv-email-highlight {
+    color: #00f2fe;
+    font-weight: 600;
+}
+
+.tv-message-box {
+    padding: 12px 18px;
+    border-radius: 12px;
+    width: 100%;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+.tv-success-box {
+    background: rgba(0, 242, 254, 0.15);
+    border: 1px solid #00f2fe;
+    color: #ffffff;
+}
+
+.tv-error-box {
+    background: rgba(255, 82, 82, 0.2);
+    border: 1px solid #ff5252;
+    color: #ffffff;
+}
+
+.tv-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.tv-primary-btn {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #ffffff;
+    border: 2px solid transparent;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tv-primary-btn.focused,
+.tv-primary-btn:focus {
+    border-color: #ffd700 !important;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.6);
+    transform: scale(1.02);
+}
+
+.tv-primary-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.tv-secondary-btn {
+    display: block;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid #2a2040;
+    color: #a19bb8;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    text-decoration: none;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+}
+
+.tv-secondary-btn.focused,
+.tv-secondary-btn:focus {
+    border-color: #ffd700 !important;
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
+    transform: scale(1.02);
+}
+
+.tv-footer {
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    width: 100%;
+}
+
+.tv-footer-text {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    color: rgba(255, 255, 255, 0.3);
+    margin: 0;
+}

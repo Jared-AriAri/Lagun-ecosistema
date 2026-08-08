@@ -1,0 +1,116 @@
+<div class="tv-layout">
+    <header class="tv-header">
+        <div class="tv-header-brand">
+            <img src="assets/brand/logo.png" alt="LAGUN" class="tv-logo" />
+
+            <div class="tv-auth-section">
+                <ng-container *ngIf="!isAuthLoading">
+                    <ng-container *ngIf="currentUser">
+                        <div class="tv-profile-section" [class.focused]="focusedZone === 'profile'">
+                            <div class="user-profile-badge">
+                                <div class="avatar-glow-ring">
+                                    <img [src]="currentUser.avatarUrl || 'assets/default-avatar.png'"
+                                        class="user-avatar" alt="Avatar" />
+                                </div>
+                                <div class="user-info">
+                                    <span class="user-name">{{ currentUser.name }}</span>
+                                    <span class="user-status-indicator">
+                                        <span class="pulse-dot"></span> EN LÍNEA
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button (click)="onLogout()" class="tv-logout-btn" [class.focused]="focusedZone === 'logout'"
+                            title="Cerrar sesión">
+                            <div class="btn-scanner-effect"></div>
+                            <svg class="logout-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            <span class="logout-text">CERRAR SESIÓN</span>
+                        </button>
+                    </ng-container>
+
+                    <button *ngIf="!currentUser" (click)="onLogin()" class="tv-login-btn"
+                        [class.focused]="focusedZone === 'profile'">
+                        <div class="btn-scanner-effect"></div>
+                        <svg class="login-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10 17 15 12 10 7"></polyline>
+                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                        </svg>
+                        <span>INICIAR SESIÓN</span>
+                    </button>
+                </ng-container>
+            </div>
+
+            <div class="telemetry-bar" *ngIf="telemetry">
+                <div class="telemetry-item">
+                    <span class="telemetry-label">TIEMPO LECTURA</span>
+                    <span class="telemetry-value cyan">{{ telemetry.reading_time_sec }}s</span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">ESTRÉS</span>
+                    <span class="telemetry-value" [ngClass]="telemetry.stress_level > 70 ? 'red' : 'green'">
+                        {{ telemetry.stress_level }}%
+                    </span>
+                </div>
+                <div class="telemetry-item">
+                    <span class="telemetry-label">SUEÑO</span>
+                    <span class="telemetry-value amber">{{ telemetry.sleep_quality }}%</span>
+                </div>
+                <div class="live-badge">
+                    <span class="dot"></span> EN VIVO
+                </div>
+            </div>
+        </div>
+
+        <div class="tv-clock-container">
+            <div class="clock-hologram-line"></div>
+            <div class="tv-clock">{{ currentTime }}</div>
+        </div>
+
+        <div class="tv-search-box">
+            <div class="search-cyber-frame"></div>
+            <input #searchInput type="text" [(ngModel)]="searchQuery" (ngModelChange)="onSearchChange()"
+                placeholder="[ Buscar reseña o noticia... ]" class="tv-search-input"
+                [class.focused]="focusedZone === 'search'" />
+        </div>
+    </header>
+
+    <div *ngIf="telemetry.needs_rest" class="rest-warning-banner">
+        <div class="warning-glitch-icon">⚠️</div>
+        <div class="warning-text-content">
+            <strong>ALERTA DE SISTEMA:</strong> Saturación detectada. Se recomienda tomar un descanso.
+        </div>
+    </div>
+
+    <main class="tv-grid">
+        <div *ngFor="let item of filteredItems; let i = index" class="tv-card"
+            [class.focused]="focusedZone === 'grid' && focusedIndex === i"
+            [style.background-image]="item.imageUrl ? 'url(' + item.imageUrl + ')' : 'none'" (click)="openDetail(item)">
+
+            <div class="card-neon-border"></div>
+
+            <div class="tv-card-header">
+                <span class="card-tag">{{ item.tag }}</span>
+                <span *ngIf="item.score" class="card-score">{{ item.score }}</span>
+            </div>
+
+            <div class="tv-card-body">
+                <h2 class="card-title">{{ item.title }}</h2>
+                <p class="card-detail">{{ item.subtitle }}</p>
+            </div>
+        </div>
+
+        <div *ngIf="filteredItems.length === 0" class="tv-no-results">
+            <div class="empty-cyber-box">
+                <span>// SIN REGISTROS ENCONTRADOS //</span>
+            </div>
+        </div>
+    </main>
+</div>

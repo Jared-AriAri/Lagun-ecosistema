@@ -1,0 +1,39 @@
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h2 class="auth-title">Crear cuenta</h2>
+    <p class="auth-subtitle">Regístrate para entrar a Lagun.</p>
+
+    <form (ngSubmit)="submit()" #f="ngForm" class="auth-form">
+
+      <label class="auth-label">Nombre completo</label>
+      <input class="auth-input" name="fullName" [(ngModel)]="fullName" type="text" required autocomplete="name"
+        placeholder="Tu nombre" />
+
+      <label class="auth-label">Email</label>
+      <input class="auth-input" name="email" [(ngModel)]="email" type="email" required autocomplete="email"
+        placeholder="tu@email.com" />
+
+      <label class="auth-label">Contraseña</label>
+      <input class="auth-input" name="password" [(ngModel)]="password" type="password" required minlength="6"
+        autocomplete="new-password" placeholder="••••••••" />
+
+      <button class="auth-button" type="submit" [disabled]="loading || !f.valid">
+        {{ loading ? 'Creando...' : 'Crear cuenta' }}
+      </button>
+
+      <p class="auth-error" *ngIf="errorMsg">
+        {{ errorMsg }}
+      </p>
+
+      <p class="auth-success" *ngIf="successMsg">
+        {{ successMsg }}
+      </p>
+
+      <p class="auth-link-text">
+        ¿Ya tienes cuenta?
+        <a routerLink="/login" class="auth-link">Inicia sesión</a>
+      </p>
+
+    </form>
+  </div>
+</div>

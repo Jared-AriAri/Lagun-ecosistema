@@ -1,0 +1,56 @@
+<div class="tv-register-container">
+  <div class="tv-register-card">
+    <img src="assets/brand/logo.png" alt="LAGUN" class="tv-register-logo" />
+    <h2 class="tv-title">Crear cuenta</h2>
+    <p class="tv-subtitle">Regístrate para entrar a Lagun TV.</p>
+
+    <div *ngIf="errorMsg" class="tv-error-msg">
+      ⚠️ {{ errorMsg }}
+    </div>
+
+    <div *ngIf="successMsg" class="tv-success-msg">
+      ✅ {{ successMsg }}
+    </div>
+
+    <form (ngSubmit)="submit()" #f="ngForm" class="tv-register-form">
+      <div class="form-group">
+        <label class="tv-label">Nombre completo</label>
+        <input #nameInput type="text" name="fullName" [(ngModel)]="fullName" class="tv-input"
+          [class.focused]="focusedInput === 'name'" (focus)="focusedInput = 'name'" placeholder="Tu nombre" required
+          autocomplete="name" autofocus />
+      </div>
+
+      <div class="form-group">
+        <label class="tv-label">Email</label>
+        <input #emailInput type="email" name="email" [(ngModel)]="email" class="tv-input"
+          [class.focused]="focusedInput === 'email'" (focus)="focusedInput = 'email'" placeholder="tu@email.com"
+          required autocomplete="email" />
+      </div>
+
+      <div class="form-group">
+        <label class="tv-label">Contraseña</label>
+        <input #passwordInput type="password" name="password" [(ngModel)]="password" class="tv-input"
+          [class.focused]="focusedInput === 'password'" (focus)="focusedInput = 'password'" placeholder="••••••••"
+          required minlength="6" autocomplete="new-password" />
+      </div>
+
+      <button #submitBtn type="submit" class="tv-submit-btn" [class.focused]="focusedInput === 'submit'"
+        (focus)="focusedInput = 'submit'" [disabled]="loading || !f.valid">
+        {{ loading ? 'Creando...' : 'Crear cuenta' }}
+      </button>
+
+      <div class="tv-actions-row">
+        <p class="tv-link-text">
+          ¿Ya tienes cuenta?
+          <a #loginBtn routerLink="/tv/login" class="tv-link" [class.focused]="focusedInput === 'login'"
+            (focus)="focusedInput = 'login'">Inicia sesión</a>
+        </p>
+
+        <button #backBtn type="button" (click)="goBack()" class="tv-back-btn" [class.focused]="focusedInput === 'back'"
+          (focus)="focusedInput = 'back'">
+          ← Volver
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

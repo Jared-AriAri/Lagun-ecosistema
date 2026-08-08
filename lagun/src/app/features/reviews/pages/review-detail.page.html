@@ -1,0 +1,157 @@
+<section class="min-h-screen bg-[#05010d] text-white relative overflow-hidden pb-40">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(124,58,237,0.15),transparent_60%)]"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(0,229,255,0.05),transparent_40%)]"></div>
+    <div
+        class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.08] pointer-events-none">
+    </div>
+
+    @if (loading()) {
+    <div class="max-w-4xl mx-auto px-6 pt-48 animate-pulse text-center">
+        <div class="h-4 w-24 bg-white/10 rounded-full mx-auto mb-8"></div>
+        <div class="h-20 bg-white/10 rounded-3xl mb-12 w-3/4 mx-auto"></div>
+        <div class="aspect-video bg-white/5 rounded-[4rem] mb-20"></div>
+    </div>
+    } @else {
+    @if (article(); as item) {
+    <article class="relative max-w-5xl mx-auto px-6 pt-32 lg:pt-48">
+        <header class="mb-20">
+            <div class="flex flex-wrap gap-3 mb-10">
+                <span
+                    class="px-5 py-2 rounded-full text-[10px] font-black bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 uppercase tracking-[0.3em] backdrop-blur-xl">
+                    {{ item.game_genres?.name || 'General' }}
+                </span>
+
+                <span
+                    class="px-5 py-2 rounded-full text-[10px] font-black bg-white/5 border border-white/10 text-white/60 uppercase tracking-[0.3em] backdrop-blur-xl">
+                    Review
+                </span>
+
+                <span
+                    class="px-5 py-2 rounded-full text-[10px] font-black bg-violet-500/10 border border-violet-500/20 text-violet-300 uppercase tracking-[0.3em] backdrop-blur-xl">
+                    {{ item.rating || 0 }}/10
+                </span>
+            </div>
+
+            <h1
+                class="text-6xl md:text-[8rem] font-black mb-12 leading-[0.85] tracking-tighter italic uppercase bg-gradient-to-b from-white via-white to-white/10 bg-clip-text text-transparent drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+                {{ item.title }}
+            </h1>
+
+            <div
+                class="flex flex-wrap items-center gap-8 text-white/30 text-[10px] font-bold uppercase tracking-[0.4em] font-mono">
+                <span class="flex items-center gap-3">
+                    <div class="w-2.5 h-2.5 rounded-full bg-cyan-500 shadow-[0_0_15px_#00e5ff]"></div>
+                    {{ (item.updated_at || item.created_at) | date:'dd / MM / yyyy' }}
+                </span>
+                <div class="h-4 w-[1px] bg-white/10 hidden md:block"></div>
+                <span class="text-white/60 uppercase">Lagun Reviews • Score Editorial</span>
+            </div>
+        </header>
+
+        <div class="group relative aspect-video rounded-[4rem] overflow-hidden border border-white/10 mb-24 shadow-2xl">
+            @if (item.cover_image_url) {
+            <img [src]="item.cover_image_url" [alt]="item.title"
+                class="w-full h-full object-cover grayscale-[0.15] brightness-90 group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000">
+            } @else {
+            <div
+                class="w-full h-full bg-gradient-to-br from-violet-900/40 via-[#0D0A14] to-cyan-950/30 flex items-center justify-center">
+                <span class="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Sin Imagen</span>
+            </div>
+            }
+            <div class="absolute inset-0 bg-gradient-to-t from-[#05010d] via-transparent to-transparent opacity-80">
+            </div>
+
+            <div class="absolute right-8 bottom-8">
+                <div class="px-6 py-4 rounded-[1.5rem] bg-black/50 border border-white/10 backdrop-blur-xl shadow-xl">
+                    <span class="text-3xl md:text-4xl font-black text-white">{{ item.rating || 0 }}</span>
+                    <span class="text-white/40 text-sm md:text-base font-bold">/10</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="relative max-w-4xl mx-auto">
+            <div
+                class="prose prose-invert max-w-none prose-p:text-xl prose-p:leading-relaxed prose-p:text-white/50 prose-p:mb-12">
+                @if (item.excerpt) {
+                <p
+                    class="text-3xl md:text-5xl text-white/95 font-medium italic mb-20 border-l-4 border-violet-600 pl-12 py-4 leading-tight tracking-tighter">
+                    {{ item.excerpt }}
+                </p>
+                }
+
+                <div [innerHTML]="item.content"
+                    class="drop-shadow-sm selection:bg-cyan-500 selection:text-black font-light"></div>
+            </div>
+        </div>
+
+        <div class="mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div class="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6">
+                <p class="text-[10px] uppercase tracking-[0.3em] text-white/30 font-black mb-3">Comprar</p>
+                @if (item.buy_link) {
+                <a [href]="item.buy_link" target="_blank" rel="noopener noreferrer"
+                    class="text-cyan-300 font-bold hover:text-cyan-200 transition-colors">
+                    Link de compra
+                </a>
+                } @else {
+                <p class="text-white/40 font-bold">No disponible</p>
+                }
+            </div>
+        </div>
+
+        <footer
+            class="mt-40 pt-20 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-12">
+            <div class="flex items-center gap-6">
+                <div
+                    class="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-400 via-violet-500 to-fuchsia-600 p-[2px] shadow-lg">
+                    <div
+                        class="w-full h-full rounded-full bg-[#05010d] flex items-center justify-center overflow-hidden">
+                        @if (item.profiles && item.profiles.avatar_url) {
+                        <img [src]="item.profiles.avatar_url" class="w-full h-full object-cover">
+                        } @else {
+                        <span class="font-black text-xl italic text-white uppercase tracking-tighter">R</span>
+                        }
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-[10px] uppercase tracking-[0.5em] text-white/20 font-bold mb-1">Autoría</p>
+                    <p class="text-2xl font-black uppercase italic text-white/90 tracking-tighter">
+                        {{ item.profiles?.full_name || 'Lagun Reviews' }}
+                    </p>
+                </div>
+            </div>
+
+            <a routerLink="/reviews"
+                class="group flex items-center gap-5 px-12 py-6 rounded-2xl bg-white/[0.02] border border-white/10 text-[10px] font-black uppercase tracking-[0.5em] hover:bg-cyan-500/10 hover:border-cyan-500/40 transition-all duration-500">
+                <svg class="w-5 h-5 text-cyan-400 group-hover:-translate-x-3 transition-transform duration-500"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
+                        d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Volver
+            </a>
+        </footer>
+    </article>
+    } @else {
+    <div class="relative z-10 max-w-lg mx-auto px-6 pt-64 text-center">
+        <h2
+            class="text-5xl font-black uppercase italic tracking-tighter mb-8 bg-gradient-to-b from-white to-white/20 bg-clip-text text-transparent">
+            RESEÑA NO ENCONTRADA
+        </h2>
+
+        <a routerLink="/reviews"
+            class="group flex items-center justify-center gap-5 px-12 py-6 rounded-2xl bg-white/[0.02] border border-white/10 text-[10px] font-black uppercase tracking-[0.5em] hover:bg-cyan-500/10 hover:border-cyan-500/40 transition-all duration-500 mx-auto w-fit">
+            <svg class="w-5 h-5 text-cyan-400 group-hover:-translate-x-3 transition-transform duration-500" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Volver
+        </a>
+    </div>
+    }
+    }
+
+    <div
+        class="absolute bottom-0 left-0 right-0 h-[600px] bg-gradient-to-t from-violet-900/10 via-transparent to-transparent pointer-events-none">
+    </div>
+</section>

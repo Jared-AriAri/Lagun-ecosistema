@@ -1,0 +1,21 @@
+{
+    "name": "LAGUN",
+    "short_name": "LAGUN",
+    "theme_color": "#0a0712",
+    "background_color": "#0a0712",
+    "display": "standalone",
+    "scope": "/",
+    "start_url": "/",
+    "icons": [
+        {
+            "src": "assets/brand/logo.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "assets/brand/logo.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
