@@ -55,6 +55,7 @@ export class TvComponent implements OnInit, OnDestroy {
     searchQuery = '';
     currentTime = '';
     isAuthLoading = true;
+    isOffline = false;
 
     currentUser: UserProfile | null = null;
 
@@ -125,8 +126,10 @@ export class TvComponent implements OnInit, OnDestroy {
             } else {
                 this.currentUser = null;
             }
+            this.isOffline = false;
         } catch (error) {
             this.currentUser = null;
+            this.isOffline = true;
         } finally {
             this.isAuthLoading = false;
             this.cdr.detectChanges();
@@ -158,9 +161,9 @@ export class TvComponent implements OnInit, OnDestroy {
                 .eq('id', userId)
                 .maybeSingle();
 
-            const displayName = profile?.full_name || profile?.username || email?.split('@')[0] || 'Usuario';
+            const displayName = profile?.full_name || email?.split('@')[0] || 'Usuario';
 
-            let rawAvatar = profile?.avatar_url || profile?.avatar || profile?.image_url || null;
+            let rawAvatar = profile?.avatar_url || null;
             let finalAvatarUrl: string | null = null;
 
             if (rawAvatar) {
@@ -182,6 +185,7 @@ export class TvComponent implements OnInit, OnDestroy {
                 avatarUrl: finalAvatarUrl,
                 email: email
             };
+            this.isOffline = false;
         } catch (error) {
             this.currentUser = {
                 id: userId,
@@ -189,6 +193,7 @@ export class TvComponent implements OnInit, OnDestroy {
                 avatarUrl: null,
                 email: email
             };
+            this.isOffline = true;
         }
     }
 
@@ -197,7 +202,12 @@ export class TvComponent implements OnInit, OnDestroy {
     }
 
     async onLogout() {
-        await this.supabaseService.supabase.auth.signOut();
+        try {
+            await this.supabaseService.supabase.auth.signOut();
+            this.isOffline = false;
+        } catch (error) {
+            this.isOffline = true;
+        }
         this.currentUser = null;
         this.focusedZone = 'grid';
         this.cdr.detectChanges();
@@ -252,7 +262,7 @@ export class TvComponent implements OnInit, OnDestroy {
                         type: 'news',
                         title: news.title || 'Sin título',
                         subtitle: news.excerpt || news.description || 'Noticia reciente',
-                        imageUrl: news.cover_image_url || news.image_url || news.cover_url || null,
+                        imageUrl: news.cover_image_url || null,
                         tag: 'NOTICIA'
                     });
                 });
@@ -266,7 +276,7 @@ export class TvComponent implements OnInit, OnDestroy {
                         type: 'reviews',
                         title: review.title || 'Sin título',
                         subtitle: 'Reseña editorial',
-                        imageUrl: review.cover_image_url || review.image_url || review.cover_url || null,
+                        imageUrl: review.cover_image_url || null,
                         tag: 'RESEÑA',
                         score: review.rating ? `${review.rating}/10` : undefined
                     });
@@ -275,10 +285,12 @@ export class TvComponent implements OnInit, OnDestroy {
 
             this.items = fetchedItems;
             this.applyFilter();
+            this.isOffline = false;
             this.cdr.detectChanges();
 
         } catch (error) {
-            console.error('Error al cargar datos en TV:', error);
+            this.isOffline = true;
+            this.cdr.detectChanges();
         }
     }
 
@@ -295,8 +307,9 @@ export class TvComponent implements OnInit, OnDestroy {
             if (data) {
                 this.updateTelemetryState(data);
             }
+            this.isOffline = false;
         } catch (error) {
-            console.error('Error al cargar telemetría:', error);
+            this.isOffline = true;
         }
     }
 
@@ -365,7 +378,9 @@ export class TvComponent implements OnInit, OnDestroy {
                 });
             })
             .subscribe((status) => {
-                console.log('Realtime Status:', status);
+                if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+                    setTimeout(() => this.listenToRealtime(), 3000);
+                }
             });
     }
 

@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, HostListener, inject, ChangeDetectorRef, 
 import { CommonModule, Location } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { SupabaseService } from '../../services/supabase.service';
+import { Subscription } from 'rxjs';
 
 @Component({
     selector: 'app-tv-detail',
@@ -21,19 +22,26 @@ export class TvDetailComponent implements OnInit, OnDestroy {
     loading = true;
     private visibilityListener: any;
     private focusListener: any;
+    private paramSub: Subscription | null = null;
     private isResyncing = false;
 
     async ngOnInit() {
-        const type = this.route.snapshot.paramMap.get('type');
-        const slug = this.route.snapshot.paramMap.get('slug');
+        this.paramSub = this.route.paramMap.subscribe(async (params) => {
+            const type = params.get('type');
+            const slug = params.get('slug');
 
-        if (type && slug) {
-            await this.loadDetail(type, slug);
-        }
+            if (type && slug) {
+                await this.loadDetail(type, slug);
+            }
+        });
+
         this.initResyncListeners();
     }
 
     ngOnDestroy() {
+        if (this.paramSub) {
+            this.paramSub.unsubscribe();
+        }
         if (this.visibilityListener) {
             document.removeEventListener('visibilitychange', this.visibilityListener);
         }
@@ -83,8 +91,10 @@ export class TvDetailComponent implements OnInit, OnDestroy {
 
     async loadDetail(type: string, slug: string) {
         try {
-            this.loading = true;
-            this.cdr.detectChanges();
+            if (!this.item) {
+                this.loading = true;
+                this.cdr.detectChanges();
+            }
 
             const client = this.supabaseService.supabase;
             const table = type === 'news' ? 'news_articles' : 'reviews';

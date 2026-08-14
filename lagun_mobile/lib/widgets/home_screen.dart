@@ -22,6 +22,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
   bool _isConnected = false;
+  bool _isOnline = true; // Control de estado de red / Supabase
   String _currentTime = '';
   Timer? _clockTimer;
 
@@ -110,10 +111,16 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _items = fetchedItems;
           _applyFilter(_searchController.text);
+          _isOnline = true; // Conexión restaurada
         });
       }
     } catch (e) {
-      debugPrint('Error al cargar datos: $e');
+      debugPrint('Error al cargar datos (Modo offline): $e');
+      if (mounted) {
+        setState(() {
+          _isOnline = false; // Sin conexión a red/servidor
+        });
+      }
     }
   }
 
@@ -150,6 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _bioController.text = response['bio']?.toString() ?? '';
           _userAvatarUrl = response['avatar_url']?.toString();
           _userRole = response['role']?.toString();
+          _isOnline = true;
         });
       } else if (userId.isNotEmpty) {
         final defaultName = user?.email?.split('@').first ?? 'Usuario';
@@ -164,14 +172,16 @@ class _HomeScreenState extends State<HomeScreen> {
           setState(() {
             _nameController.text = defaultName;
             _bioController.text = '';
+            _isOnline = true;
           });
         }
       }
     } catch (e) {
-      debugPrint('Error al cargar perfil: $e');
+      debugPrint('Error al cargar perfil (Modo offline): $e');
       if (mounted) {
         setState(() {
-          _profileErrorMessage = 'Error al cargar perfil: $e';
+          _isOnline = false;
+          _profileErrorMessage = 'Sin conexión. Mostrando datos locales.';
         });
       }
     }
@@ -198,13 +208,15 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() {
           _profileSuccessMessage = 'CONFIGURACIÓN GUARDADA EXITOSAMENTE';
+          _isOnline = true;
         });
       }
     } catch (e) {
       debugPrint('Error al guardar perfil: $e');
       if (mounted) {
         setState(() {
-          _profileErrorMessage = 'ERROR AL ACTUALIZAR: $e';
+          _isOnline = false;
+          _profileErrorMessage = 'ERROR: Sin conexión a internet para guardar.';
         });
       }
     } finally {
@@ -223,9 +235,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (data != null && mounted) {
         _updateTelemetryState(data);
+        setState(() => _isOnline = true);
       }
     } catch (e) {
-      debugPrint('Error telemetría: $e');
+      debugPrint('Error telemetría (Modo offline): $e');
+      if (mounted) setState(() => _isOnline = false);
     }
   }
 
@@ -332,8 +346,11 @@ class _HomeScreenState extends State<HomeScreen> {
         'sleep_quality': sleep,
         'updated_at': DateTime.now().toIso8601String(),
       }, onConflict: 'user_id');
+      
+      if (mounted && !_isOnline) setState(() => _isOnline = true);
     } catch (e) {
-      debugPrint("Error Sync: $e");
+      debugPrint("Error Sync (Offline): $e");
+      if (mounted) setState(() => _isOnline = false);
     }
   }
 
@@ -343,7 +360,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _logout() async {
-    await Supabase.instance.client.auth.signOut();
+    try {
+      await Supabase.instance.client.auth.signOut();
+    } catch (_) {}
     if (mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -372,6 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Barra superior de estado y marca
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Row(
@@ -402,6 +422,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
             ),
+            
+            // Banner de advertencia offline (Aparece automáticamente si la red falla)
+            if (!_isOnline)
+              Container(
+                width: double.infinity,
+                color: Colors.amber.shade900.withOpacity(0.9),
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.wifi_off, size: 14, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text(
+                      'MODO OFFLINE · Sin conexión con Supabase',
+                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                    ),
+                  ],
+                ),
+              ),
+
             TelemetryBar(
               telemetry: _telemetry,
               isConnected: _isConnected,

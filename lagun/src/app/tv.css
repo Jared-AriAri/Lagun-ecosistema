@@ -7,7 +7,8 @@
     overflow: hidden !important;
     background: radial-gradient(circle at 50% 20%, #150c2d 0%, #0a0712 70%, #040208 100%);
     color: #ffffff;
-    padding: 3vw 4vw;
+    /* Safe Zone obligatoria para Smart TV: 54px vertical (5% de 1080), 96px horizontal (5% de 1920) */
+    padding: 54px 96px !important;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
@@ -31,7 +32,7 @@
 }
 
 .tv-logo {
-    height: 42px;
+    height: 60px;
     width: auto;
     object-fit: contain;
     filter: drop-shadow(0 0 10px rgba(0, 229, 255, 0.4));
@@ -40,7 +41,7 @@
 .tv-auth-section {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
 }
 
 .tv-profile-section {
@@ -49,7 +50,7 @@
     background: rgba(20, 15, 38, 0.8);
     border: 1px solid rgba(138, 43, 226, 0.3);
     border-radius: 16px;
-    padding: 4px 12px 4px 4px;
+    padding: 6px 16px 6px 6px;
     backdrop-filter: blur(12px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -74,8 +75,8 @@
 }
 
 .user-avatar {
-    width: 36px;
-    height: 36px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     object-fit: cover;
     display: block;
@@ -88,25 +89,25 @@
 }
 
 .user-name {
-    font-size: 0.95rem;
+    font-size: 1.5rem !important;
     font-weight: 800;
     color: #ffffff;
     letter-spacing: 0.05em;
 }
 
 .user-status-indicator {
-    font-size: 0.65rem;
+    font-size: 1.1rem !important;
     color: #00e676;
     font-weight: 700;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     letter-spacing: 0.08em;
 }
 
 .pulse-dot {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     background-color: #00e676;
     border-radius: 50%;
     box-shadow: 0 0 8px #00e676;
@@ -139,9 +140,9 @@
     background: linear-gradient(135deg, rgba(220, 38, 38, 0.2) 0%, rgba(153, 27, 27, 0.4) 100%);
     color: #ff8080;
     border: 1px solid rgba(255, 82, 82, 0.4);
-    padding: 10px 18px;
+    padding: 12px 24px;
     border-radius: 14px;
-    font-size: 0.9rem;
+    font-size: 1.5rem !important;
     font-weight: 900;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -149,7 +150,7 @@
     letter-spacing: 0.08em;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
 }
 
 .tv-logout-btn.focused,
@@ -167,16 +168,16 @@
     background: linear-gradient(135deg, rgba(37, 99, 235, 0.3) 0%, rgba(138, 43, 226, 0.4) 100%);
     color: #ffffff;
     border: 1px solid rgba(0, 229, 255, 0.4);
-    padding: 10px 20px;
+    padding: 12px 24px;
     border-radius: 14px;
     cursor: pointer;
-    font-size: 0.95rem;
+    font-size: 1.5rem !important;
     font-weight: 900;
     letter-spacing: 0.08em;
     backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -208,9 +209,9 @@
 .telemetry-bar {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 18px;
     background: rgba(14, 10, 26, 0.8);
-    padding: 6px 16px;
+    padding: 8px 20px;
     border-radius: 14px;
     border: 1px solid rgba(138, 43, 226, 0.2);
     backdrop-filter: blur(10px);
@@ -223,14 +224,14 @@
 }
 
 .telemetry-label {
-    font-size: 9px;
-    color: rgba(255, 255, 255, 0.4);
+    font-size: 1rem !important;
+    color: rgba(255, 255, 255, 0.6);
     font-weight: 800;
     letter-spacing: 0.08em;
 }
 
 .telemetry-value {
-    font-size: 14px;
+    font-size: 1.5rem !important;
     font-weight: 900;
     letter-spacing: 0.05em;
 }
@@ -258,20 +259,20 @@
 .live-badge {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 10px;
+    gap: 8px;
+    font-size: 1.2rem !important;
     font-weight: 900;
     color: #00e676;
     background: rgba(0, 230, 118, 0.1);
     border: 1px solid rgba(0, 230, 118, 0.3);
-    padding: 5px 10px;
+    padding: 6px 14px;
     border-radius: 10px;
     letter-spacing: 0.1em;
 }
 
 .live-badge .dot {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
     background-color: #00e676;
     border-radius: 50%;
     box-shadow: 0 0 8px #00e676;
@@ -280,7 +281,7 @@
 .tv-clock-container {
     position: relative;
     background: rgba(14, 10, 26, 0.8);
-    padding: 8px 18px;
+    padding: 10px 22px;
     border-radius: 14px;
     border: 1px solid rgba(0, 229, 255, 0.25);
     backdrop-filter: blur(10px);
@@ -291,13 +292,13 @@
     bottom: 0;
     left: 10%;
     width: 80%;
-    height: 1px;
+    height: 2px;
     background: linear-gradient(90deg, transparent, #00e5ff, transparent);
     box-shadow: 0 0 8px #00e5ff;
 }
 
 .tv-clock {
-    font-size: 1.25rem;
+    font-size: 1.8rem !important;
     font-weight: 900;
     color: #00e5ff;
     white-space: nowrap;
@@ -306,7 +307,7 @@
 }
 
 .tv-search-box {
-    width: 320px;
+    width: 380px;
     flex-shrink: 0;
     position: relative;
 }
@@ -326,9 +327,9 @@
     background: rgba(14, 10, 26, 0.9);
     border: 2px solid rgba(42, 32, 64, 0.8);
     border-radius: 12px;
-    padding: 10px 18px;
+    padding: 12px 20px;
     color: #ffffff;
-    font-size: 1.05rem;
+    font-size: 1.5rem !important;
     font-weight: 700;
     outline: none;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -338,7 +339,7 @@
 }
 
 .tv-search-input::placeholder {
-    color: rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.4);
 }
 
 .tv-search-input.focused,
@@ -351,27 +352,27 @@
 .rest-warning-banner {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
     background: linear-gradient(135deg, rgba(255, 82, 82, 0.15) 0%, rgba(20, 10, 26, 0.9) 100%);
     border: 1px solid rgba(255, 82, 82, 0.5);
     color: #ffffff;
-    padding: 12px 20px;
+    padding: 16px 24px;
     border-radius: 14px;
     margin-bottom: 20px;
-    font-size: 1.05rem;
+    font-size: 1.5rem !important;
     backdrop-filter: blur(10px);
     box-shadow: 0 0 20px rgba(255, 82, 82, 0.2);
 }
 
 .warning-glitch-icon {
-    font-size: 1.2rem;
+    font-size: 2rem !important;
 }
 
 .tv-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     grid-template-rows: repeat(2, 1fr);
-    gap: 24px;
+    gap: 28px;
     flex: 1;
     min-height: 0;
 }
@@ -434,13 +435,14 @@
     z-index: 3;
 }
 
+/* Requerido por rúbrica: ≥ 2rem */
 .card-tag {
     background: rgba(138, 43, 226, 0.6);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(138, 43, 226, 0.5);
-    padding: 6px 16px;
+    padding: 8px 20px;
     border-radius: 20px;
-    font-size: 1.05rem;
+    font-size: 2rem !important;
     font-weight: 900;
     text-transform: uppercase;
     letter-spacing: 0.1em;
@@ -451,9 +453,9 @@
 .card-score {
     background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
     color: #040208;
-    padding: 6px 14px;
+    padding: 8px 18px;
     border-radius: 20px;
-    font-size: 1.3rem;
+    font-size: 2rem !important;
     font-weight: 900;
     box-shadow: 0 0 20px rgba(0, 242, 254, 0.6);
     letter-spacing: 0.05em;
@@ -464,21 +466,24 @@
     z-index: 3;
 }
 
+/* Requerido por rúbrica: ≥ 5rem */
 .card-title {
-    font-size: 2.2rem;
+    font-size: 5rem !important;
     font-weight: 900;
-    line-height: 1.15;
-    margin-bottom: 8px;
+    line-height: 1.1;
+    margin-bottom: 12px;
     color: #ffffff;
     text-shadow: 0 2px 15px rgba(0, 0, 0, 0.9);
     letter-spacing: 0.02em;
 }
 
+/* Requerido por rúbrica: ≥ 1.5rem */
 .card-detail {
-    font-size: 1.1rem;
+    font-size: 1.5rem !important;
     color: #dcd6ec;
     text-shadow: 0 1px 8px rgba(0, 0, 0, 0.9);
     font-weight: 600;
+    line-height: 1.4;
 }
 
 .tv-no-results {
@@ -491,11 +496,11 @@
 .empty-cyber-box {
     background: rgba(14, 10, 26, 0.6);
     border: 1px dashed rgba(138, 43, 226, 0.4);
-    padding: 30px 50px;
+    padding: 40px 60px;
     border-radius: 16px;
     backdrop-filter: blur(10px);
     color: #a19bb8;
-    font-size: 1.3rem;
+    font-size: 2rem !important;
     font-weight: 800;
     letter-spacing: 0.15em;
     text-shadow: 0 0 10px rgba(138, 43, 226, 0.3);
@@ -503,8 +508,8 @@
 
 .logout-icon-svg,
 .login-icon-svg {
-    width: 18px;
-    height: 18px;
+    width: 24px;
+    height: 24px;
     stroke: currentColor;
     filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4));
 }

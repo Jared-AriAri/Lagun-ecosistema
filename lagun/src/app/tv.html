@@ -92,7 +92,8 @@
     <main class="tv-grid">
         <div *ngFor="let item of filteredItems; let i = index" class="tv-card"
             [class.focused]="focusedZone === 'grid' && focusedIndex === i"
-            [style.background-image]="item.imageUrl ? 'url(' + item.imageUrl + ')' : 'none'" (click)="openDetail(item)">
+            [style.background-image]="item.imageUrl ? 'linear-gradient(to top, rgba(5,1,13,0.95), rgba(5,1,13,0.3)), url(\'' + item.imageUrl + '\')' : 'none'"
+            (click)="openDetail(item)">
 
             <div class="card-neon-border"></div>
 
