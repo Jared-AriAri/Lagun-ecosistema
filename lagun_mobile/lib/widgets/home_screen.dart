@@ -12,8 +12,6 @@ import 'package:permission_handler/permission_handler.dart';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-
-
 import '../models/tv_models.dart';
 
 import 'telemetry_bar.dart';
@@ -25,13 +23,9 @@ import 'incident_report_screen.dart';
 
 import '../auth/login_screen.dart';
 
-
-
 class HomeScreen extends StatefulWidget {
 
 const HomeScreen({super.key});
-
-
 
 @override
 
@@ -39,20 +33,16 @@ const HomeScreen({super.key});
 
 }
 
-
-
 class _HomeScreenState extends State<HomeScreen> {
 
   int _currentIndex = 0;
 
   bool _isConnected = false;
 
-  bool _isOnline = true; // Control de estado de red / Supabase
+  bool _isOnline = true;
   String _currentTime = '';
 
   Timer? _clockTimer;
-
-
 
   TelemetryMetrics _telemetry = TelemetryMetrics(
 
@@ -66,15 +56,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   );
 
-
-
   List<TvItem> _items = [];
 
   List<TvItem> _filteredItems = [];
 
 final TextEditingController _searchController = TextEditingController();
-
-
 
 final TextEditingController _nameController = TextEditingController();
 
@@ -92,8 +78,6 @@ final TextEditingController _bioController = TextEditingController();
 
   String? _profileErrorMessage;
 
-
-
   Socket? _bridgeSocket;
 
   Timer? _reconnectTimer;
@@ -101,8 +85,6 @@ final TextEditingController _bioController = TextEditingController();
   StreamSubscription<List<ScanResult>>? _scanSubscription;
 
   RealtimeChannel? _supabaseChannel;
-
-
 
 @override
 
@@ -126,8 +108,6 @@ void initState() {
 
   }
 
-
-
 void _startClock() {
 
     _updateClock();
@@ -135,8 +115,6 @@ void _startClock() {
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (_) => _updateClock());
 
   }
-
-
 
 void _updateClock() {
 
@@ -152,8 +130,6 @@ final timeStr = "${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().
 
   }
 
-
-
   Future<void> _loadData() async {
 
     try {
@@ -163,8 +139,6 @@ final client = Supabase.instance.client;
 final newsArticles = await client.from('news_articles').select('id, slug, title, excerpt, cover_image_url').eq('status', 'published').limit(5);
 
 final reviews = await client.from('reviews').select('id, slug, title, rating, cover_image_url').eq('status', 'published').limit(5);
-
-
 
 final List<TvItem> fetchedItems = [];
 
@@ -214,8 +188,6 @@ final List<TvItem> fetchedItems = [];
 
       }
 
-
-
       if (mounted) {
 
         setState(() {
@@ -224,20 +196,20 @@ final List<TvItem> fetchedItems = [];
 
           _applyFilter(_searchController.text);
 
-          _isOnline = true; // Conexión restaurada
+          _isOnline = true;
         });
 
       }
 
     } catch (e) {
 
-      debugPrint('Error al cargar datos (Modo offline): $e');
+      debugPrint('Error al cargar noticias o reseñas: $e');
 
       if (mounted) {
 
         setState(() {
 
-          _isOnline = false; // Sin conexión a red/servidor
+          if (e is SocketException || e is TimeoutException) _isOnline = false;
         });
 
       }
@@ -245,216 +217,116 @@ final List<TvItem> fetchedItems = [];
     }
 
   }
-
-
 
   Future<void> _loadUserProfile() async {
-
     try {
-
-final client = Supabase.instance.client;
-
-var user = client.auth.currentUser;
-
-
-
+      final client = Supabase.instance.client;
+      var user = client.auth.currentUser;
       if (user == null) {
-
         await Future.delayed(const Duration(milliseconds: 500));
-
         user = client.auth.currentUser;
-
       }
-
-
-
-      if (user == null) return;
-
-
-
-      if (mounted) {
-
-        setState(() {
-
-          _userEmail = user?.email;
-
-        });
-
-      }
-
-
-
-final userId = user?.id;
-
-      if (userId == null) return;
-
-
-
-final response = await client
-
-          .from('profiles')
-
-          .select('full_name, bio, avatar_url, role')
-
-          .eq('id', userId)
-
-          .maybeSingle();
-
-
-
-      if (response != null && mounted) {
-
-        setState(() {
-
-          _nameController.text = response['full_name']?.toString() ?? '';
-
-          _bioController.text = response['bio']?.toString() ?? '';
-
-          _userAvatarUrl = response['avatar_url']?.toString();
-
-          _userRole = response['role']?.toString();
-
-          _isOnline = true;
-
-        });
-
-      } else if (userId.isNotEmpty) {
-
-final defaultName = user?.email?.split('@').first ?? 'Usuario';
-
-        await client.from('profiles').upsert({
-
-          'id': userId,
-
-          'full_name': defaultName,
-
-          'bio': '',
-
-          'updated_at': DateTime.now().toIso8601String(),
-
-        });
-
-
-
-        if (mounted) {
-
-          setState(() {
-
-            _nameController.text = defaultName;
-
-            _bioController.text = '';
-
-            _isOnline = true;
-
-          });
-
-        }
-
-      }
-
-    } catch (e) {
-
-      debugPrint('Error al cargar perfil (Modo offline): $e');
-
-      if (mounted) {
-
-        setState(() {
-
-          _isOnline = false;
-
-          _profileErrorMessage = 'Sin conexión. Mostrando datos locales.';
-
-        });
-
-      }
-
-    }
-
-  }
-
-
-
-  Future<void> _saveProfile() async {
-
-    setState(() {
-
-      _isProfileLoading = true;
-
-      _profileSuccessMessage = null;
-
-      _profileErrorMessage = null;
-
-    });
-
-
-
-    try {
-
-final user = Supabase.instance.client.auth.currentUser;
-
-      if (user == null) throw Exception('Usuario no autenticado');
-
-
-
-      await Supabase.instance.client.from('profiles').upsert({
-
-        'id': user.id,
-
-        'full_name': _nameController.text.trim(),
-
-        'bio': _bioController.text.trim(),
-
-        'updated_at': DateTime.now().toIso8601String(),
-
+      if (user == null || !mounted) return;
+
+      final userId = user.id;
+      setState(() {
+        _userEmail = user!.email;
       });
 
+      final response = await client
+          .from('profiles')
+          .select('full_name, bio, avatar_url, role')
+          .eq('id', userId)
+          .maybeSingle();
 
-
-      if (mounted) {
-
+      if (!mounted) return;
+      if (response == null) {
         setState(() {
-
-          _profileSuccessMessage = 'CONFIGURACIÓN GUARDADA EXITOSAMENTE';
-
-          _isOnline = true;
-
+          _profileErrorMessage =
+              'No se encontró tu perfil. Comprueba que se haya creado al registrarte.';
         });
-
+        return;
       }
 
+      setState(() {
+        _nameController.text = response['full_name']?.toString() ?? '';
+        _bioController.text = response['bio']?.toString() ?? '';
+        _userAvatarUrl = response['avatar_url']?.toString();
+        _userRole = response['role']?.toString();
+        _profileErrorMessage = null;
+      });
+    } on PostgrestException catch (e) {
+      debugPrint('Error de Supabase al cargar perfil: ${e.code} ${e.message}');
+      if (mounted) {
+        setState(() {
+          _profileErrorMessage = 'Error al cargar perfil: ${e.message}';
+        });
+      }
     } catch (e) {
-
-      debugPrint('Error al guardar perfil: $e');
-
+      debugPrint('Error al cargar perfil: $e');
       if (mounted) {
-
         setState(() {
-
-          _isOnline = false;
-
-          _profileErrorMessage = 'ERROR: Sin conexión a internet para guardar.';
-
+          _profileErrorMessage = 'No se pudo cargar el perfil: $e';
         });
-
       }
-
-    } finally {
-
-      if (mounted) {
-
-        setState(() {
-
-          _isProfileLoading = false;
-
-        });
-
-      }
-
     }
-
   }
 
+  Future<void> _saveProfile() async {
+    if (_isProfileLoading) return;
+    setState(() {
+      _isProfileLoading = true;
+      _profileSuccessMessage = null;
+      _profileErrorMessage = null;
+    });
 
+    try {
+      final client = Supabase.instance.client;
+      final user = client.auth.currentUser;
+      if (user == null) {
+        throw StateError('Usuario no autenticado');
+      }
+
+      final result = await client
+          .from('profiles')
+          .update({
+            'full_name': _nameController.text.trim(),
+            'bio': _bioController.text.trim(),
+          })
+          .eq('id', user.id)
+          .select('id')
+          .maybeSingle();
+
+      if (result == null) {
+        throw StateError('No se encontró un perfil autorizado para actualizar');
+      }
+      if (!mounted) return;
+      setState(() {
+        _profileSuccessMessage = 'CONFIGURACIÓN GUARDADA EXITOSAMENTE';
+        _profileErrorMessage = null;
+      });
+    } on PostgrestException catch (e) {
+      debugPrint('Error de Supabase al guardar perfil: ${e.code} ${e.message}');
+      if (mounted) {
+        setState(() {
+          _profileErrorMessage = 'Error ${e.code ?? ''}: ${e.message}';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error al guardar perfil: $e');
+      if (mounted) {
+        setState(() {
+          _profileErrorMessage = 'No se pudo guardar el perfil: $e';
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProfileLoading = false;
+        });
+      }
+    }
+  }
 
   Future<void> _loadTelemetry() async {
 
@@ -462,9 +334,9 @@ final user = Supabase.instance.client.auth.currentUser;
 
 final client = Supabase.instance.client;
 
-final data = await client.from('user_telemetry_metrics').select('reading_time_sec, articles_read, scroll_activity, stress_level, sleep_quality').order('updated_at', ascending: false).limit(1).maybeSingle();
-
-
+final userId = client.auth.currentUser?.id;
+      if (userId == null) return;
+      final data = await client.from('user_telemetry_metrics').select('reading_time_sec, articles_read, scroll_activity, stress_level, sleep_quality').eq('user_id', userId).maybeSingle();
 
       if (data != null && mounted) {
 
@@ -476,15 +348,15 @@ final data = await client.from('user_telemetry_metrics').select('reading_time_se
 
     } catch (e) {
 
-      debugPrint('Error telemetría (Modo offline): $e');
+      debugPrint('Error al cargar telemetría: $e');
 
-      if (mounted) setState(() => _isOnline = false);
+      if (mounted && (e is SocketException || e is TimeoutException)) {
+        setState(() => _isOnline = false);
+      }
 
     }
 
   }
-
-
 
 void _updateTelemetryState(Map<String, dynamic> data) {
 
@@ -495,8 +367,6 @@ final stress = data['stress_level'] ?? data['scroll_activity'] ?? 0;
 final sleep = data['sleep_quality'] ?? data['articles_read'] ?? 0;
 
 final needsRest = stress > 70 || (sleep > 0 && sleep < 50);
-
-
 
     setState(() {
 
@@ -516,19 +386,17 @@ final needsRest = stress > 70 || (sleep > 0 && sleep < 50);
 
   }
 
-
-
 void _listenToSupabaseRealtime() {
 
 final client = Supabase.instance.client;
 
-    _supabaseChannel = client.channel('mobile-realtime-global');
-
-
+    final userId = client.auth.currentUser?.id;
+    if (userId == null) return;
+    _supabaseChannel = client.channel('mobile-realtime-$userId');
 
     _supabaseChannel!
 
-        .onPostgresChanges(event: PostgresChangeEvent.all, schema: 'public', table: 'user_telemetry_metrics', callback: (payload) {
+        .onPostgresChanges(event: PostgresChangeEvent.all, schema: 'public', table: 'user_telemetry_metrics', filter: PostgresChangeFilter(type: PostgresChangeFilterType.eq, column: 'user_id', value: userId), callback: (payload) {
 
           if (payload.newRecord.isNotEmpty) _updateTelemetryState(payload.newRecord);
 
@@ -541,8 +409,6 @@ final client = Supabase.instance.client;
         .subscribe();
 
   }
-
-
 
 void _applyFilter(String query) {
 
@@ -560,8 +426,6 @@ final q = query.toLowerCase().trim();
 
     }
 
-
-
     if (q.isEmpty) {
 
       _filteredItems = List.from(baseList);
@@ -573,8 +437,6 @@ final q = query.toLowerCase().trim();
     }
 
   }
-
-
 
   Future<void> _requestPermissionsAndStartScan() async {
 
@@ -605,8 +467,6 @@ final q = query.toLowerCase().trim();
     } catch (_) {}
 
   }
-
-
 
 void _connectToEmulatorBridge() async {
 
@@ -640,8 +500,6 @@ void _connectToEmulatorBridge() async {
 
   }
 
-
-
 void _processBinaryBytes(Uint8List data) async {
 
 final time = (data[0] << 8) | data[1];
@@ -649,8 +507,6 @@ final time = (data[0] << 8) | data[1];
 final sleep = data[2];
 
 final stress = data[3];
-
-
 
     if (mounted) {
 
@@ -662,8 +518,6 @@ final stress = data[3];
 
   }
 
-
-
   Future<void> _syncMetricsToSupabase(int time, int sleep, int stress) async {
 
     try {
@@ -671,8 +525,6 @@ final stress = data[3];
 final userId = Supabase.instance.client.auth.currentUser?.id;
 
       if (userId == null) return;
-
-
 
       await Supabase.instance.client.from('user_telemetry_metrics').upsert({
 
@@ -696,15 +548,15 @@ final userId = Supabase.instance.client.auth.currentUser?.id;
 
     } catch (e) {
 
-      debugPrint("Error Sync (Offline): $e");
+      debugPrint('Error al sincronizar telemetría: $e');
 
-      if (mounted) setState(() => _isOnline = false);
+      if (mounted && (e is SocketException || e is TimeoutException)) {
+        setState(() => _isOnline = false);
+      }
 
     }
 
   }
-
-
 
 void _handleDisconnection() {
 
@@ -713,8 +565,6 @@ void _handleDisconnection() {
     _reconnectTimer = Timer(const Duration(seconds: 4), () => _connectToEmulatorBridge());
 
   }
-
-
 
   Future<void> _logout() async {
 
@@ -735,8 +585,6 @@ void _handleDisconnection() {
     }
 
   }
-
-
 
 @override
 
@@ -764,8 +612,6 @@ void dispose() {
 
   }
 
-
-
 @override
 
   Widget build(BuildContext context) {
@@ -779,7 +625,7 @@ void dispose() {
         child: Column(
 
           children: [
-// Barra superior de estado y marca
+
             Padding(
 
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -839,7 +685,7 @@ const Text(
               ),
 
             ),
-// Banner de advertencia offline (Aparece automáticamente si la red falla)
+
             if (!_isOnline)
 
               Container(
@@ -873,8 +719,6 @@ const Text(
                 ),
 
               ),
-
-
 
             TelemetryBar(
 
@@ -994,8 +838,6 @@ const Text(
 
   }
 
-
-
   Widget _buildNavItem(int index, IconData icon, String label, Color activeColor) {
 
 final bool isSelected = _currentIndex == index;
@@ -1073,8 +915,6 @@ const SizedBox(height: 4),
     );
 
   }
-
-
 
   Widget _buildProfileNavItem(int index, String label, Color activeColor) {
 
