@@ -1,0 +1,39 @@
+<div class="tv-confirm-container">
+    <div class="tv-confirm-card">
+        <img src="assets/brand/logo.png" alt="LAGUN" class="tv-confirm-logo" />
+
+        <div class="tv-icon-wrapper">
+            <span class="tv-mail-icon">📧</span>
+        </div>
+
+        <h1 class="tv-title">Verifica tu correo</h1>
+        <p class="tv-subtitle">
+            Hemos enviado un enlace de confirmación a:<br>
+            <span class="tv-email-highlight">{{ email }}</span>
+        </p>
+
+        <div *ngIf="message" class="tv-message-box tv-success-box">
+            {{ message }}
+        </div>
+
+        <div *ngIf="error" class="tv-message-box tv-error-box">
+            {{ error }}
+        </div>
+
+        <div class="tv-actions">
+            <button #resendBtn (click)="resend()" class="tv-primary-btn" [class.focused]="focusedInput === 'resend'"
+                (focus)="focusedInput = 'resend'" [disabled]="loading">
+                {{ loading ? 'Enviando...' : 'Reenviar enlace ↻' }}
+            </button>
+
+            <a #loginBtn routerLink="/tv/login" class="tv-secondary-btn" [class.focused]="focusedInput === 'login'"
+                (focus)="focusedInput = 'login'">
+                Volver al Login
+            </a>
+        </div>
+
+        <div class="tv-footer">
+            <p class="tv-footer-text">LAGUN SECURITY SYSTEM</p>
+        </div>
+    </div>
+</div>

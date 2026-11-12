@@ -1,0 +1,141 @@
+<section class="min-h-screen bg-[#05010d] text-white relative overflow-hidden">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(124,58,237,0.12),transparent_60%)]"></div>
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_0%_0%,rgba(0,229,255,0.05),transparent_40%)]"></div>
+
+    <div
+        class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.08] brightness-50 contrast-150 pointer-events-none">
+    </div>
+
+    <div class="relative max-w-7xl mx-auto px-6 pt-48 pb-10 text-center">
+        <h1
+            class="text-8xl md:text-[11rem] font-black tracking-[-0.05em] mb-8 bg-gradient-to-b from-white via-white to-white/10 bg-clip-text text-transparent italic leading-none drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+            LAGUN
+        </h1>
+
+        <p
+            class="max-w-2xl mx-auto text-base md:text-lg text-white/30 leading-relaxed font-light tracking-[0.2em] uppercase italic">
+            El epicentro de la <span class="text-white/60 font-bold">Cultura Gaming</span>. El futuro se vive aquí.
+        </p>
+
+        <div class="mt-24 flex items-center justify-center gap-8 opacity-20">
+            <div class="h-[1px] w-32 bg-gradient-to-r from-transparent via-cyan-500 to-transparent"></div>
+            <span class="text-[9px] font-bold uppercase tracking-[1.2em] text-white whitespace-nowrap">Contenido
+                Rediente</span>
+            <div class="h-[1px] w-32 bg-gradient-to-r from-transparent via-cyan-500 to-transparent"></div>
+        </div>
+    </div>
+
+    @if (isEventActive()) {
+    <div class="relative max-w-7xl mx-auto px-6 mb-16 animate-slide-up">
+        <div
+            class="p-8 rounded-[2.5rem] border border-[var(--color-cyan)]/20 bg-[var(--glass-bg)] backdrop-blur-xl bg-gradient-to-r from-[var(--glass-bg)] to-[var(--color-violet)]/10 shadow-[0_20px_40px_-15px_rgba(0,229,255,0.1)]">
+            <span
+                class="text-[9px] font-black px-2.5 py-1 rounded bg-[var(--color-fuchsia)] tracking-[0.15em] inline-block mb-3 text-white">LIVE
+                EVENT</span>
+            <h2
+                class="text-3xl font-black uppercase italic tracking-tighter bg-gradient-to-r from-white to-white/50 bg-clip-text text-transparent mb-2">
+                CYBER SUMMER FEST 2026</h2>
+            <p class="text-sm text-white/50 m-0">Tu pase VIP a los estrenos más esperados ya está activo. Reclama tus
+                ventajas exclusivas antes de que el servidor se cierre.</p>
+        </div>
+    </div>
+    }
+
+    <div class="relative max-w-7xl mx-auto px-6 pb-40">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+            @for (item of latestContent(); track item.id) {
+            <article (pointerover)="activeCardId.set(item.id)" (pointerout)="activeCardId.set(null)"
+                [ngClass]="activeCardId() === item.id && currentTheme() === 'theme-cyber-june' ? 'border-[var(--color-cyan)] shadow-[0_30px_60px_-15px_rgba(0,229,255,0.15)] -translate-y-4' : 'hover:border-violet-500/40 hover:-translate-y-4 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.8)]'"
+                class="group relative bg-[#0D0A14]/40 border border-white/[0.05] rounded-[3rem] overflow-hidden transition-all duration-700 backdrop-blur-sm">
+
+                <div class="aspect-[16/11] overflow-hidden relative">
+                    @if (item.cover_image_url) {
+                    <img [src]="item.cover_image_url" [alt]="item.title"
+                        class="w-full h-full object-cover grayscale-[0.4] brightness-75 group-hover:grayscale-0 group-hover:brightness-110 group-hover:scale-105 transition-all duration-1000">
+                    } @else {
+                    <div
+                        class="w-full h-full bg-gradient-to-br from-violet-900/40 via-[#0D0A14] to-cyan-950/30 flex items-center justify-center">
+                        <span class="text-[10px] font-black uppercase tracking-[0.4em] text-white/20">Sin Imagen</span>
+                    </div>
+                    }
+
+                    <div
+                        class="absolute inset-0 bg-gradient-to-t from-[#0D0A14] via-[#0D0A14]/20 to-transparent opacity-90">
+                    </div>
+
+                    <div class="absolute top-6 left-6 px-4 py-1.5 bg-black/60 backdrop-blur-xl border rounded-full shadow-xl transition-colors duration-300"
+                        [ngClass]="activeCardId() === item.id && currentTheme() === 'theme-cyber-june' ? 'border-[var(--color-cyan)]/30' : 'border-white/10'">
+                        <span class="text-[8px] font-black uppercase tracking-widest transition-colors duration-300"
+                            [ngClass]="activeCardId() === item.id && currentTheme() === 'theme-cyber-june' ? 'text-[var(--color-cyan)]' : 'text-cyan-400'">
+                            {{ item.content_type === 'news' ? 'Noticia' : 'Reseña' }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="p-10">
+                    <div class="text-[9px] font-bold text-violet-400/60 uppercase tracking-widest mb-4">
+                        {{ (item.published_at || item.created_at) | date:'dd / MM / yyyy' }}
+                    </div>
+
+                    <h3 class="text-2xl font-black mb-4 line-clamp-2 transition-colors uppercase italic tracking-tighter leading-tight"
+                        [ngClass]="activeCardId() === item.id && currentTheme() === 'theme-cyber-june' ? 'text-[var(--color-cyan)]' : 'group-hover:text-cyan-400'">
+                        {{ item.title }}
+                    </h3>
+
+                    <p
+                        class="text-white/20 text-xs line-clamp-2 font-medium leading-relaxed mb-10 uppercase tracking-wide">
+                        {{ item.excerpt || item.content }}
+                    </p>
+
+                    @if (activeCardId() === item.id) {
+                    <div class="flex flex-col gap-4 animate-slide-up">
+                        @if (item.route) {
+                        <a [routerLink]="item.route"
+                            class="inline-flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-white/40 hover:text-white transition-all cursor-pointer">
+                            Abrir Detalles
+                            <div class="w-8 h-[1px] bg-violet-600 hover:w-14 transition-all duration-500"></div>
+                        </a>
+                        } @else {
+                        <span
+                            class="inline-flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.3em] text-white/15 cursor-not-allowed">
+                            Sin Detalle
+                            <div class="w-8 h-[1px] bg-white/10"></div>
+                        </span>
+                        }
+
+                        @if (item.buy_link) {
+                        <div class="mt-2 w-full">
+                            <a [href]="item.buy_link" target="_blank" rel="noopener noreferrer"
+                                class="block w-full py-3 px-6 rounded-full text-[9px] font-black uppercase tracking-[0.2em] text-center no-underline bg-gradient-to-r from-[var(--color-cyan)] to-[var(--color-violet)] text-white hover:brightness-110 shadow-[0_8px_20px_-4px_rgba(0,229,255,0.3)] transition-all duration-300">
+                                ADQUIRIR ACCESO
+                            </a>
+                        </div>
+                        }
+                    </div>
+                    }
+                </div>
+            </article>
+            } @empty {
+            @if (!loading()) {
+            <div
+                class="col-span-3 py-40 text-center border border-dashed border-white/10 rounded-[4rem] bg-white/[0.01]">
+                <p class="text-white/10 uppercase tracking-[0.8em] text-[10px] font-bold">Sin señales en el sector
+                    actual. Vuelve a escanear pronto.</p>
+            </div>
+            }
+            }
+        </div>
+
+        @if (loading()) {
+        <div class="flex justify-center py-24">
+            <div
+                class="w-12 h-12 border-[3px] border-cyan-500/10 border-t-cyan-400 rounded-full animate-spin shadow-[0_0_15px_rgba(0,229,255,0.2)]">
+            </div>
+        </div>
+        }
+    </div>
+
+    <div
+        class="absolute bottom-0 left-0 right-0 h-96 bg-gradient-to-t from-violet-900/10 via-transparent to-transparent pointer-events-none">
+    </div>
+</section>
