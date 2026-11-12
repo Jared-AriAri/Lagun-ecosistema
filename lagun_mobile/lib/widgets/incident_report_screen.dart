@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:lagun_mobile/validators/ticket_validator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class IncidentReportScreen extends StatefulWidget {
   const IncidentReportScreen({super.key});
 
   @override
-  State<IncidentReportScreen> createState() =>
-      _IncidentReportScreenState();
+  State<IncidentReportScreen> createState() => _IncidentReportScreenState();
 }
 
 class _IncidentReportScreenState extends State<IncidentReportScreen> {
@@ -82,7 +82,7 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
   }
 
   Future<void> _createTicket() async {
-    if (!_formKey.currentState!.validate() || _submitting) return;
+    if (_submitting || !(_formKey.currentState?.validate() ?? false)) return;
 
     final user = _supabase.auth.currentUser;
 
@@ -95,6 +95,7 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
 
     try {
       await _supabase.from('support_tickets').insert({
+        'user_id': user.id,
         'title': _titleController.text.trim(),
         'description': _descriptionController.text.trim(),
         'category': _category,
@@ -104,7 +105,7 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
 
       _titleController.clear();
       _descriptionController.clear();
-      _formKey.currentState!.reset();
+      _formKey.currentState?.reset();
 
       setState(() => _category = 'app');
 
@@ -126,9 +127,7 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: error
-            ? Colors.redAccent
-            : Colors.green,
+        backgroundColor: error ? Colors.redAccent : Colors.green,
       ),
     );
   }
@@ -179,9 +178,7 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
       hintStyle: const TextStyle(color: Colors.white38),
       filled: true,
       fillColor: const Color(0xFF201A30),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
         borderSide: const BorderSide(color: Colors.white24),
@@ -200,7 +197,7 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
       decoration: BoxDecoration(
         color: const Color(0xFF130F22),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.cyanAccent.withOpacity(0.25)),
+        border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.25)),
       ),
       child: Form(
         key: _formKey,
@@ -243,12 +240,7 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
               maxLength: 150,
               style: const TextStyle(color: Colors.white),
               decoration: _decoration('Describe brevemente el problema'),
-              validator: (value) {
-                if (value == null || value.trim().length < 5) {
-                  return 'Escribe un asunto de al menos 5 caracteres';
-                }
-                return null;
-              },
+              validator: TicketValidator.validateTitle,
             ),
             const SizedBox(height: 12),
             _inputDecorationLabel('Descripción'),
@@ -261,12 +253,7 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
               decoration: _decoration(
                 'Explica qué ocurrió y cómo podemos reproducirlo',
               ),
-              validator: (value) {
-                if (value == null || value.trim().length < 10) {
-                  return 'Escribe al menos 10 caracteres';
-                }
-                return null;
-              },
+              validator: TicketValidator.validateDescription,
             ),
             const SizedBox(height: 12),
             const Text(
@@ -282,14 +269,10 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
                     ? const SizedBox(
                         height: 16,
                         width: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.confirmation_number_rounded),
-                label: Text(
-                  _submitting ? 'ENVIANDO...' : 'CREAR TICKET',
-                ),
+                label: Text(_submitting ? 'ENVIANDO...' : 'CREAR TICKET'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.cyanAccent,
                   foregroundColor: Colors.black,
@@ -305,8 +288,7 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
 
   Widget _buildTicket(Map<String, dynamic> ticket) {
     final status = ticket['status']?.toString() ?? 'open';
-    final priority =
-        ticket['priority']?.toString() ?? 'unassigned';
+    final priority = ticket['priority']?.toString() ?? 'unassigned';
     final category = ticket['category']?.toString() ?? 'other';
 
     final rawDate = ticket['created_at']?.toString();
@@ -315,8 +297,8 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
     final formattedDate = date == null
         ? 'Sin fecha'
         : '${date.toLocal().day.toString().padLeft(2, '0')}/'
-          '${date.toLocal().month.toString().padLeft(2, '0')}/'
-          '${date.toLocal().year}';
+              '${date.toLocal().month.toString().padLeft(2, '0')}/'
+              '${date.toLocal().year}';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -354,28 +336,22 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
             children: [
               Chip(
                 label: Text(_statuses[status] ?? status),
-                backgroundColor: _statusColor(status).withOpacity(0.15),
+                backgroundColor: _statusColor(status).withValues(alpha: 0.15),
                 labelStyle: TextStyle(color: _statusColor(status)),
               ),
               Chip(
-                label: Text(
-                  'Prioridad: ${_priorities[priority] ?? priority}',
-                ),
-                backgroundColor:
-                    _priorityColor(priority).withOpacity(0.15),
-                labelStyle: TextStyle(
-                  color: _priorityColor(priority),
-                ),
+                label: Text('Prioridad: ${_priorities[priority] ?? priority}'),
+                backgroundColor: _priorityColor(
+                  priority,
+                ).withValues(alpha: 0.15),
+                labelStyle: TextStyle(color: _priorityColor(priority)),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             'Creado: $formattedDate',
-            style: const TextStyle(
-              color: Colors.white38,
-              fontSize: 12,
-            ),
+            style: const TextStyle(color: Colors.white38, fontSize: 12),
           ),
         ],
       ),
@@ -399,9 +375,7 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
       );
     }
 
-    return Column(
-      children: _tickets.map(_buildTicket).toList(),
-    );
+    return Column(children: _tickets.map(_buildTicket).toList());
   }
 
   @override
@@ -449,10 +423,7 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
                   ),
                   IconButton(
                     onPressed: _loading ? null : _loadTickets,
-                    icon: const Icon(
-                      Icons.refresh,
-                      color: Colors.cyanAccent,
-                    ),
+                    icon: const Icon(Icons.refresh, color: Colors.cyanAccent),
                   ),
                 ],
               ),
