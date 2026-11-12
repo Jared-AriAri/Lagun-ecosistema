@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:lagun_mobile/services/ticket_service.dart';
+import 'package:lagun_mobile/services/supabase_ticket_repository.dart';
 import 'package:lagun_mobile/validators/ticket_validator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class IncidentReportScreen extends StatefulWidget {
-  const IncidentReportScreen({super.key});
+  const IncidentReportScreen({super.key, this.repository});
+
+  final TicketRepository? repository;
 
   @override
   State<IncidentReportScreen> createState() => _IncidentReportScreenState();
@@ -14,11 +18,12 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  final _supabase = Supabase.instance.client;
+  late final TicketService _ticketService;
 
   String _category = 'app';
   bool _submitting = false;
   bool _loading = true;
+
   List<Map<String, dynamic>> _tickets = [];
 
   final Map<String, String> _categories = {
@@ -47,30 +52,26 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
   @override
   void initState() {
     super.initState();
+
+    _ticketService = TicketService(
+      widget.repository ?? SupabaseTicketRepository(Supabase.instance.client),
+    );
+
     _loadTickets();
   }
 
   Future<void> _loadTickets() async {
     if (!mounted) return;
+
     setState(() => _loading = true);
 
     try {
-      final user = _supabase.auth.currentUser;
-
-      if (user == null) {
-        throw Exception('Debes iniciar sesión');
-      }
-
-      final response = await _supabase
-          .from('support_tickets')
-          .select()
-          .eq('user_id', user.id)
-          .order('created_at', ascending: false);
+      final response = await _ticketService.loadTickets();
 
       if (!mounted) return;
 
       setState(() {
-        _tickets = List<Map<String, dynamic>>.from(response);
+        _tickets = response;
       });
     } catch (e) {
       _showMessage('Error al cargar tickets: $e', error: true);
@@ -82,24 +83,18 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
   }
 
   Future<void> _createTicket() async {
-    if (_submitting || !(_formKey.currentState?.validate() ?? false)) return;
-
-    final user = _supabase.auth.currentUser;
-
-    if (user == null) {
-      _showMessage('Debes iniciar sesión', error: true);
+    if (_submitting || !(_formKey.currentState?.validate() ?? false)) {
       return;
     }
 
     setState(() => _submitting = true);
 
     try {
-      await _supabase.from('support_tickets').insert({
-        'user_id': user.id,
-        'title': _titleController.text.trim(),
-        'description': _descriptionController.text.trim(),
-        'category': _category,
-      });
+      await _ticketService.createTicket(
+        title: _titleController.text,
+        description: _descriptionController.text,
+        category: _category,
+      );
 
       if (!mounted) return;
 
@@ -107,7 +102,9 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
       _descriptionController.clear();
       _formKey.currentState?.reset();
 
-      setState(() => _category = 'app');
+      setState(() {
+        _category = 'app';
+      });
 
       _showMessage('Ticket creado correctamente');
 
@@ -221,14 +218,16 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
               style: const TextStyle(color: Colors.white),
               decoration: _decoration('Selecciona una categoría'),
               items: _categories.entries.map((entry) {
-                return DropdownMenuItem(
+                return DropdownMenuItem<String>(
                   value: entry.key,
                   child: Text(entry.value),
                 );
               }).toList(),
               onChanged: (value) {
                 if (value != null) {
-                  setState(() => _category = value);
+                  setState(() {
+                    _category = value;
+                  });
                 }
               },
             ),
@@ -288,10 +287,13 @@ class _IncidentReportScreenState extends State<IncidentReportScreen> {
 
   Widget _buildTicket(Map<String, dynamic> ticket) {
     final status = ticket['status']?.toString() ?? 'open';
+
     final priority = ticket['priority']?.toString() ?? 'unassigned';
+
     final category = ticket['category']?.toString() ?? 'other';
 
     final rawDate = ticket['created_at']?.toString();
+
     final date = rawDate == null ? null : DateTime.tryParse(rawDate);
 
     final formattedDate = date == null
