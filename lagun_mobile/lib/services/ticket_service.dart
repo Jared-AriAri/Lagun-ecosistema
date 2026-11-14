@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:lagun_mobile/validators/ticket_validator.dart';
+import 'package:uuid/uuid.dart';
 
 abstract class TicketRepository {
   String? get currentUserId;
@@ -34,7 +37,11 @@ class TicketSubmissionInProgress implements Exception {
 class TicketService {
   final TicketRepository repository;
 
+  static const Uuid _uuid = Uuid();
+
   bool _submitting = false;
+  String? _pendingRequestId;
+  String? _pendingPayload;
 
   TicketService(this.repository);
 
@@ -54,19 +61,21 @@ class TicketService {
     required String title,
     required String description,
     required String category,
+    String? requestId,
   }) async {
     if (_submitting) {
       throw const TicketSubmissionInProgress();
     }
 
-    final titleError = TicketValidator.validateTitle(title);
+    final normalizedTitle = title.trim();
+    final normalizedDescription = description.trim();
 
+    final titleError = TicketValidator.validateTitle(title);
     if (titleError != null) {
       throw TicketValidationException(titleError);
     }
 
     final descriptionError = TicketValidator.validateDescription(description);
-
     if (descriptionError != null) {
       throw TicketValidationException(descriptionError);
     }
@@ -83,15 +92,45 @@ class TicketService {
       throw const TicketNotAuthenticated();
     }
 
+    final payloadIdentity = jsonEncode([
+      userId,
+      normalizedTitle,
+      normalizedDescription,
+      category,
+    ]);
+
+    final String operationId;
+
+    if (requestId != null) {
+      if (!Uuid.isValidUUID(fromString: requestId)) {
+        throw const TicketValidationException(
+          'Identificador de operación no válido',
+        );
+      }
+
+      operationId = requestId;
+    } else if (_pendingPayload == payloadIdentity &&
+        _pendingRequestId != null) {
+      operationId = _pendingRequestId!;
+    } else {
+      operationId = _uuid.v4();
+    }
+
+    _pendingRequestId = operationId;
+    _pendingPayload = payloadIdentity;
     _submitting = true;
 
     try {
       await repository.insertTicket({
         'user_id': userId,
-        'title': title.trim(),
-        'description': description.trim(),
+        'request_id': operationId,
+        'title': normalizedTitle,
+        'description': normalizedDescription,
         'category': category,
       });
+
+      _pendingRequestId = null;
+      _pendingPayload = null;
     } finally {
       _submitting = false;
     }
