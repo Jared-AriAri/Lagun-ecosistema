@@ -25,12 +25,21 @@ class EmailConfirmationScreen extends StatelessWidget {
                     Image.asset(
                       'assets/brand/logo.png',
                       height: 40,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.bolt, color: Colors.cyanAccent, size: 40),
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.bolt,
+                        color: Colors.cyanAccent,
+                        size: 40,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     const Text(
                       'LAGUN',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 2.0, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2.0,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -38,7 +47,11 @@ class EmailConfirmationScreen extends StatelessWidget {
                 const Center(
                   child: Text(
                     '// VERIFICACIÓN DE CORREO //',
-                    style: TextStyle(fontSize: 12, color: Colors.cyanAccent, letterSpacing: 1.5),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.cyanAccent,
+                      letterSpacing: 1.5,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -47,7 +60,9 @@ class EmailConfirmationScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFF130F22),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.cyanAccent.withOpacity(0.3)),
+                    border: Border.all(
+                      color: Colors.cyanAccent.withOpacity(0.3),
+                    ),
                   ),
                   child: Column(
                     children: [
@@ -90,11 +105,16 @@ class EmailConfirmationScreen extends StatelessWidget {
                     backgroundColor: Colors.cyanAccent,
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: const Text(
                     'IR A INICIAR SESIÓN',
-                    style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
                   ),
                 ),
               ],

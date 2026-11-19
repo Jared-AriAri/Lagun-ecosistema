@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lagun_mobile/services/ticket_service.dart';
+import 'package:uuid/uuid.dart';
 
 class FakeTicketRepository implements TicketRepository {
   @override
@@ -11,6 +12,8 @@ class FakeTicketRepository implements TicketRepository {
 
   Map<String, dynamic>? inserted;
   String? requestedUserId;
+
+  final List<Map<String, dynamic>> insertAttempts = [];
 
   int insertCount = 0;
 
@@ -33,7 +36,11 @@ class FakeTicketRepository implements TicketRepository {
   @override
   Future<void> insertTicket(Map<String, dynamic> ticket) async {
     insertCount++;
-    inserted = ticket;
+
+    // Copia independiente para conservar la evidencia
+    // de cada intento de inserción.
+    inserted = Map<String, dynamic>.from(ticket);
+    insertAttempts.add(Map<String, dynamic>.from(ticket));
 
     if (insertBarrier != null) {
       await insertBarrier!.future;
@@ -43,7 +50,7 @@ class FakeTicketRepository implements TicketRepository {
       throw insertError!;
     }
 
-    records.add(ticket);
+    records.add(Map<String, dynamic>.from(ticket));
   }
 }
 
@@ -56,11 +63,12 @@ void main() {
     service = TicketService(fake);
   });
 
-  Future<void> createValidTicket() {
+  Future<void> createValidTicket({String? requestId}) {
     return service.createTicket(
       title: 'Falla app',
       description: 'No puedo abrir noticias',
       category: 'app',
+      requestId: requestId,
     );
   }
 
@@ -108,14 +116,23 @@ void main() {
         category: 'content',
       );
 
-      expect(fake.inserted, {
-        'user_id': 'user-a',
-        'title': 'Error de app',
-        'description': 'No aparecen los reportes',
-        'category': 'content',
-      });
+      expect(fake.inserted, isNotNull);
+
+      expect(fake.inserted!['user_id'], 'user-a');
+      expect(fake.inserted!['title'], 'Error de app');
+      expect(fake.inserted!['description'], 'No aparecen los reportes');
+      expect(fake.inserted!['category'], 'content');
+
+      // Nueva validación de la práctica 12:
+      // cada ticket debe tener request_id UUID.
+      final requestId = fake.inserted!['request_id'];
+
+      expect(requestId, isA<String>());
+
+      expect(Uuid.isValidUUID(fromString: requestId as String), isTrue);
 
       expect(fake.insertCount, 1);
+      expect(fake.records, hasLength(1));
     });
 
     test('WB-23: rechaza asunto corto', () async {
@@ -196,6 +213,7 @@ void main() {
       await first;
 
       expect(service.isSubmitting, isFalse);
+      expect(fake.records, hasLength(1));
     });
 
     test('WB-29: permite reintentar tras error', () async {
@@ -209,12 +227,100 @@ void main() {
 
       expect(fake.insertCount, 2);
       expect(fake.records, hasLength(1));
+      expect(service.isSubmitting, isFalse);
     });
 
     test('WB-30: libera bandera tras éxito', () async {
       await createValidTicket();
 
       expect(service.isSubmitting, isFalse);
+      expect(fake.insertCount, 1);
+    });
+  });
+
+  group('Practicas 13 y 14 - Automatización unitaria', () {
+    test('AUT-01: genera un UUID válido para cada operación', () async {
+      await createValidTicket();
+
+      final requestId = fake.insertAttempts.single['request_id'];
+
+      expect(requestId, isA<String>());
+      expect(Uuid.isValidUUID(fromString: requestId as String), isTrue);
+      expect(fake.insertCount, 1);
+    });
+
+    test('AUT-02: rechaza un request_id inválido', () async {
+      await expectLater(
+        createValidTicket(requestId: 'id-invalido'),
+        throwsA(isA<TicketValidationException>()),
+      );
+
+      expect(fake.insertCount, 0);
+      expect(fake.records, isEmpty);
+    });
+
+    test('AUT-03: conserva request_id en un reintento', () async {
+      fake.insertError = StateError('Error temporal');
+
+      await expectLater(createValidTicket(), throwsStateError);
+
+      final firstRequestId = fake.insertAttempts.first['request_id'];
+
+      fake.insertError = null;
+
+      await createValidTicket();
+
+      final secondRequestId = fake.insertAttempts.last['request_id'];
+
+      expect(firstRequestId, secondRequestId);
+      expect(fake.insertCount, 2);
+      expect(fake.records, hasLength(1));
+    });
+
+    test('AUT-04: genera nuevo ID si cambia el contenido', () async {
+      fake.insertError = StateError('Error temporal');
+
+      await expectLater(createValidTicket(), throwsStateError);
+
+      final previousId = fake.insertAttempts.first['request_id'];
+
+      fake.insertError = null;
+
+      await service.createTicket(
+        title: 'Otro error',
+        description: 'El perfil no se puede actualizar',
+        category: 'account',
+      );
+
+      final newId = fake.insertAttempts.last['request_id'];
+
+      expect(newId, isNot(previousId));
+      expect(fake.insertCount, 2);
+      expect(fake.records, hasLength(1));
+    });
+
+    test('AUT-05: acepta un UUID proporcionado', () async {
+      const operationId = '123e4567-e89b-42d3-a456-426614174000';
+
+      await createValidTicket(requestId: operationId);
+
+      expect(fake.inserted!['request_id'], operationId);
+
+      expect(fake.insertCount, 1);
+    });
+
+    test('AUT-06: rechazo de categoría no realiza escritura', () async {
+      await expectLater(
+        service.createTicket(
+          title: 'Problema válido',
+          description: 'La aplicación presenta un error',
+          category: 'categoria-desconocida',
+        ),
+        throwsA(isA<TicketValidationException>()),
+      );
+
+      expect(fake.insertCount, 0);
+      expect(fake.records, isEmpty);
     });
   });
 }

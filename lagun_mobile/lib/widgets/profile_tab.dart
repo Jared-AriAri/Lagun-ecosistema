@@ -16,6 +16,12 @@ class ProfileTab extends StatefulWidget {
   final VoidCallback onSave;
   final VoidCallback onLogout;
   final Function(String newAvatarUrl)? onAvatarChanged;
+  final Future<XFile?> Function()? avatarPickerOverride;
+  final String? Function()? avatarUserIdOverride;
+  final Future<void> Function(String path, File file)? avatarFileUploadOverride;
+  final String Function(String path)? avatarPublicUrlOverride;
+  final Future<void> Function(Map<String, dynamic> values)?
+  avatarProfileUpsertOverride;
 
   const ProfileTab({
     super.key,
@@ -30,6 +36,11 @@ class ProfileTab extends StatefulWidget {
     required this.onSave,
     required this.onLogout,
     this.onAvatarChanged,
+    this.avatarPickerOverride,
+    this.avatarUserIdOverride,
+    this.avatarFileUploadOverride,
+    this.avatarPublicUrlOverride,
+    this.avatarProfileUpsertOverride,
   });
 
   @override
@@ -42,66 +53,71 @@ class _ProfileTabState extends State<ProfileTab> {
   Uint8List? _webImageBytes;
 
   Future<void> _pickAndUploadImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 70,
-      maxWidth: 500,
-    );
-
-    if (pickedFile == null) return;
-
-    setState(() {
-      _isUploadingImage = true;
-    });
-
+    if (_isUploadingImage) return;
     try {
-      final user = Supabase.instance.client.auth.currentUser;
-      if (user == null) throw Exception('Usuario no autenticado');
+      final pickedFile =
+          await (widget.avatarPickerOverride?.call() ??
+              ImagePicker().pickImage(
+                source: ImageSource.gallery,
+                imageQuality: 70,
+                maxWidth: 500,
+              ));
+      if (pickedFile == null || !mounted) return;
+      setState(() => _isUploadingImage = true);
+
+      final userId = widget.avatarUserIdOverride != null
+          ? widget.avatarUserIdOverride!()
+          : Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) throw StateError('Usuario no autenticado');
 
       final fileExt = pickedFile.name.split('.').last;
-      final fileName = '${user.id}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-      final filePath = fileName;
-
-      if (kIsWeb) {
+      final filePath =
+          '${userId}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      if (widget.avatarFileUploadOverride != null) {
+        final file = File(pickedFile.path);
+        await widget.avatarFileUploadOverride!(filePath, file);
+      } else if (kIsWeb) {
         final bytes = await pickedFile.readAsBytes();
-        setState(() {
-          _webImageBytes = bytes;
-        });
+        if (mounted) setState(() => _webImageBytes = bytes);
         await Supabase.instance.client.storage
             .from('avatars')
-            .uploadBinary(filePath, bytes, fileOptions: const FileOptions(upsert: true));
+            .uploadBinary(
+              filePath,
+              bytes,
+              fileOptions: const FileOptions(upsert: true),
+            );
       } else {
         final file = File(pickedFile.path);
-        setState(() {
-          _selectedImageFile = file;
-        });
+        if (mounted) setState(() => _selectedImageFile = file);
         await Supabase.instance.client.storage
             .from('avatars')
-            .upload(filePath, file, fileOptions: const FileOptions(upsert: true));
+            .upload(
+              filePath,
+              file,
+              fileOptions: const FileOptions(upsert: true),
+            );
       }
 
-      final imageUrl = Supabase.instance.client.storage
-          .from('avatars')
-          .getPublicUrl(filePath);
-
-      await Supabase.instance.client.from('profiles').upsert({
-        'id': user.id,
+      final imageUrl =
+          widget.avatarPublicUrlOverride?.call(filePath) ??
+          Supabase.instance.client.storage
+              .from('avatars')
+              .getPublicUrl(filePath);
+      final values = <String, dynamic>{
+        'id': userId,
         'avatar_url': imageUrl,
         'updated_at': DateTime.now().toIso8601String(),
-      });
-
-      if (widget.onAvatarChanged != null) {
-        widget.onAvatarChanged!(imageUrl);
+      };
+      if (widget.avatarProfileUpsertOverride != null) {
+        await widget.avatarProfileUpsertOverride!(values);
+      } else {
+        await Supabase.instance.client.from('profiles').upsert(values);
       }
+      if (mounted) widget.onAvatarChanged?.call(imageUrl);
     } catch (e) {
       debugPrint('Error al subir imagen: $e');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isUploadingImage = false;
-        });
-      }
+      if (mounted) setState(() => _isUploadingImage = false);
     }
   }
 
@@ -119,10 +135,7 @@ class _ProfileTabState extends State<ProfileTab> {
                   padding: const EdgeInsets.all(3),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.greenAccent,
-                      width: 2,
-                    ),
+                    border: Border.all(color: Colors.greenAccent, width: 2),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.greenAccent.withOpacity(0.3),
@@ -137,13 +150,16 @@ class _ProfileTabState extends State<ProfileTab> {
                     backgroundImage: _webImageBytes != null
                         ? MemoryImage(_webImageBytes!)
                         : (_selectedImageFile != null
-                            ? FileImage(_selectedImageFile!) as ImageProvider
-                            : (widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty
-                                ? NetworkImage(widget.avatarUrl!)
-                                : null)),
-                    child: (_webImageBytes == null &&
+                              ? FileImage(_selectedImageFile!) as ImageProvider
+                              : (widget.avatarUrl != null &&
+                                        widget.avatarUrl!.isNotEmpty
+                                    ? NetworkImage(widget.avatarUrl!)
+                                    : null)),
+                    child:
+                        (_webImageBytes == null &&
                             _selectedImageFile == null &&
-                            (widget.avatarUrl == null || widget.avatarUrl!.isEmpty))
+                            (widget.avatarUrl == null ||
+                                widget.avatarUrl!.isEmpty))
                         ? const Icon(
                             Icons.person,
                             size: 50,
@@ -162,7 +178,10 @@ class _ProfileTabState extends State<ProfileTab> {
                       decoration: BoxDecoration(
                         color: Colors.greenAccent,
                         shape: BoxShape.circle,
-                        border: Border.all(color: const Color(0xFF0A0712), width: 2),
+                        border: Border.all(
+                          color: const Color(0xFF0A0712),
+                          width: 2,
+                        ),
                       ),
                       child: _isUploadingImage
                           ? const SizedBox(
@@ -214,9 +233,7 @@ class _ProfileTabState extends State<ProfileTab> {
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
                 color: Colors.red.withOpacity(0.2),
-                border: Border.all(
-                  color: Colors.redAccent,
-                ),
+                border: Border.all(color: Colors.redAccent),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -236,9 +253,7 @@ class _ProfileTabState extends State<ProfileTab> {
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
                 color: Colors.green.withOpacity(0.2),
-                border: Border.all(
-                  color: Colors.greenAccent,
-                ),
+                border: Border.all(color: Colors.greenAccent),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -253,16 +268,11 @@ class _ProfileTabState extends State<ProfileTab> {
             ),
           TextField(
             controller: widget.nameController,
-            style: const TextStyle(
-              color: Colors.white,
-            ),
+            style: const TextStyle(color: Colors.white),
             textCapitalization: TextCapitalization.words,
             decoration: InputDecoration(
               labelText: 'NOMBRE COMPLETO',
-              labelStyle: const TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
+              labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
               filled: true,
               fillColor: const Color(0xFF130F22),
               border: OutlineInputBorder(
@@ -271,9 +281,7 @@ class _ProfileTabState extends State<ProfileTab> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(
-                  color: Colors.greenAccent,
-                ),
+                borderSide: const BorderSide(color: Colors.greenAccent),
               ),
             ),
           ),
@@ -282,20 +290,12 @@ class _ProfileTabState extends State<ProfileTab> {
             controller: widget.bioController,
             maxLines: 4,
             maxLength: 250,
-            style: const TextStyle(
-              color: Colors.white,
-            ),
+            style: const TextStyle(color: Colors.white),
             decoration: InputDecoration(
               labelText: 'BIOGRAFÍA',
-              labelStyle: const TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
+              labelStyle: const TextStyle(color: Colors.grey, fontSize: 12),
               hintText: 'Cuéntanos un poco sobre ti',
-              hintStyle: const TextStyle(
-                color: Colors.grey,
-                fontSize: 12,
-              ),
+              hintStyle: const TextStyle(color: Colors.grey, fontSize: 12),
               filled: true,
               fillColor: const Color(0xFF130F22),
               border: OutlineInputBorder(
@@ -304,9 +304,7 @@ class _ProfileTabState extends State<ProfileTab> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(
-                  color: Colors.greenAccent,
-                ),
+                borderSide: const BorderSide(color: Colors.greenAccent),
               ),
             ),
           ),
@@ -318,17 +316,13 @@ class _ProfileTabState extends State<ProfileTab> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.greenAccent,
                 foregroundColor: Colors.black,
-                disabledBackgroundColor:
-                    Colors.greenAccent.withOpacity(0.5),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                ),
+                disabledBackgroundColor: Colors.greenAccent.withOpacity(0.5),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 elevation: 5,
-                shadowColor:
-                    Colors.greenAccent.withOpacity(0.5),
+                shadowColor: Colors.greenAccent.withOpacity(0.5),
               ),
               child: widget.isLoading
                   ? const SizedBox(
@@ -369,12 +363,8 @@ class _ProfileTabState extends State<ProfileTab> {
                 ),
               ),
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(
-                  color: Colors.redAccent,
-                ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                ),
+                side: const BorderSide(color: Colors.redAccent),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),

@@ -64,26 +64,39 @@ class ArticleDetailModal extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.deepPurpleAccent,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         item.tag,
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     if (item.score != null)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.amberAccent,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           item.score!,
-                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
                         ),
                       ),
                   ],
@@ -91,12 +104,19 @@ class ArticleDetailModal extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   item.title,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Text(
                   item.subtitle,
-                  style: const TextStyle(fontSize: 15, color: Colors.white70, height: 1.4),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    color: Colors.white70,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 24),
                 SizedBox(
@@ -106,10 +126,15 @@ class ArticleDetailModal extends StatelessWidget {
                       backgroundColor: Colors.cyanAccent,
                       foregroundColor: Colors.black,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text('Cerrar Lectura', style: TextStyle(fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      'Cerrar Lectura',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ),
               ],

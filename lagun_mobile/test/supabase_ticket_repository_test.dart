@@ -150,6 +150,7 @@ void main() {
 
       final ticket = <String, dynamic>{
         'user_id': 'usuario-wb172',
+        'request_id': '123e4567-e89b-42d3-a456-426614174000',
         'title': 'Problema con una noticia',
         'description': 'El contenido de la noticia no se muestra correctamente',
         'category': 'content',

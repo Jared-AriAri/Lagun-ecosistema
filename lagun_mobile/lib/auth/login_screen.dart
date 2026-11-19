@@ -3,8 +3,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/home_screen.dart';
 import 'register_screen.dart';
 
+typedef LoginAuthenticator =
+    Future<bool> Function({required String email, required String password});
+
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final LoginAuthenticator? authenticator;
+  final WidgetBuilder? authenticatedHomeBuilder;
+
+  const LoginScreen({
+    super.key,
+    this.authenticator,
+    this.authenticatedHomeBuilder,
+  });
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -32,22 +42,27 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final client = Supabase.instance.client;
-
-      final response = await client.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-
-      if (response.user == null || response.session == null) {
-        throw Exception('No se pudo obtener la sesión.');
+      final bool authenticated;
+      if (widget.authenticator != null) {
+        authenticated = await widget.authenticator!(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+      } else {
+        final response = await Supabase.instance.client.auth.signInWithPassword(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
+        authenticated = response.user != null && response.session != null;
       }
 
+      if (!authenticated) {
+        throw StateError('No se pudo obtener la sesión.');
+      }
       if (!mounted) return;
-
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => const HomeScreen(),
+          builder: widget.authenticatedHomeBuilder ?? (_) => const HomeScreen(),
         ),
       );
     } on AuthException catch (e) {
@@ -135,9 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     margin: const EdgeInsets.only(bottom: 20),
                     decoration: BoxDecoration(
                       color: Colors.red.withOpacity(0.2),
-                      border: Border.all(
-                        color: Colors.redAccent,
-                      ),
+                      border: Border.all(color: Colors.redAccent),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -153,14 +166,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  style: const TextStyle(
-                    color: Colors.white,
-                  ),
+                  style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'Correo electrónico',
-                    labelStyle: const TextStyle(
-                      color: Colors.grey,
-                    ),
+                    labelStyle: const TextStyle(color: Colors.grey),
                     filled: true,
                     fillColor: const Color(0xFF130F22),
                     border: OutlineInputBorder(
@@ -169,9 +178,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(
-                        color: Colors.cyanAccent,
-                      ),
+                      borderSide: const BorderSide(color: Colors.cyanAccent),
                     ),
                   ),
                 ),
@@ -181,14 +188,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   obscureText: true,
                   textInputAction: TextInputAction.done,
                   onSubmitted: (_) => _isLoading ? null : _login(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                  ),
+                  style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
-                    labelStyle: const TextStyle(
-                      color: Colors.grey,
-                    ),
+                    labelStyle: const TextStyle(color: Colors.grey),
                     filled: true,
                     fillColor: const Color(0xFF130F22),
                     border: OutlineInputBorder(
@@ -197,9 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(
-                        color: Colors.cyanAccent,
-                      ),
+                      borderSide: const BorderSide(color: Colors.cyanAccent),
                     ),
                   ),
                 ),
@@ -210,9 +211,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     backgroundColor: Colors.cyanAccent,
                     disabledBackgroundColor: Colors.cyanAccent.withOpacity(0.5),
                     foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 16,
-                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -247,9 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                   child: const Text(
                     '¿No tienes cuenta? Regístrate',
-                    style: TextStyle(
-                      color: Colors.grey,
-                    ),
+                    style: TextStyle(color: Colors.grey),
                   ),
                 ),
               ],

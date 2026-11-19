@@ -3,8 +3,31 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/home_screen.dart';
 import 'email_confirmation_screen.dart';
 
+typedef RegisterAccountCallback =
+    Future<RegistrationResult> Function({
+      required String email,
+      required String password,
+    });
+typedef SaveRegistrationProfile =
+    Future<void> Function({required String userId, required String fullName});
+
+class RegistrationResult {
+  final String? userId;
+  final bool hasSession;
+  const RegistrationResult({required this.userId, required this.hasSession});
+}
+
 class RegisterScreen extends StatefulWidget {
-  const RegisterScreen({super.key});
+  final RegisterAccountCallback? registerAccount;
+  final SaveRegistrationProfile? saveProfile;
+  final WidgetBuilder? authenticatedHomeBuilder;
+
+  const RegisterScreen({
+    super.key,
+    this.registerAccount,
+    this.saveProfile,
+    this.authenticatedHomeBuilder,
+  });
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
@@ -28,39 +51,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final password = _passwordController.text.trim();
       final fullName = _nameController.text.trim();
 
-      // 1. Registro en Auth
-      final response = await Supabase.instance.client.auth.signUp(
-        email: email,
-        password: password,
-      );
+      final RegistrationResult result;
+      if (widget.registerAccount != null) {
+        result = await widget.registerAccount!(
+          email: email,
+          password: password,
+        );
+      } else {
+        final response = await Supabase.instance.client.auth.signUp(
+          email: email,
+          password: password,
+        );
+        result = RegistrationResult(
+          userId: response.user?.id,
+          hasSession: response.session != null,
+        );
+      }
 
-      final user = response.user;
-
-      if (user != null) {
-        // 2. Insertar/Actualizar el perfil en la tabla 'profiles'
+      final userId = result.userId;
+      if (userId == null) {
+        throw StateError('El registro no devolvió un usuario.');
+      }
+      if (widget.saveProfile != null) {
+        await widget.saveProfile!(userId: userId, fullName: fullName);
+      } else {
         await Supabase.instance.client.from('profiles').upsert({
-          'id': user.id,
+          'id': userId,
           'full_name': fullName,
           'updated_at': DateTime.now().toIso8601String(),
         });
-
-        // 3. Navegación según el flujo
-        if (response.session != null && mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()), // Corregido: Sin 'const' antes de HomeScreen
-          );
-        } else if (mounted) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (_) => EmailConfirmationScreen(email: email),
-            ),
-          );
-        }
       }
+      if (!mounted) return;
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: result.hasSession
+              ? (widget.authenticatedHomeBuilder ?? (_) => const HomeScreen())
+              : (_) => EmailConfirmationScreen(email: email),
+        ),
+      );
     } catch (e) {
-      setState(() {
-        _errorMessage = 'Error al registrar: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error al registrar: $e';
+        });
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -97,12 +131,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     Image.asset(
                       'assets/brand/logo.png',
                       height: 40,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.bolt, color: Colors.cyanAccent, size: 40),
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.bolt,
+                        color: Colors.cyanAccent,
+                        size: 40,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     const Text(
                       'LAGUN',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: 2.0, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2.0,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -110,7 +153,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const Center(
                   child: Text(
                     '// NUEVO REGISTRO //',
-                    style: TextStyle(fontSize: 12, color: Colors.cyanAccent, letterSpacing: 1.5),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.cyanAccent,
+                      letterSpacing: 1.5,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -125,7 +172,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                     child: Text(
                       _errorMessage!,
-                      style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                      style: const TextStyle(
+                        color: Colors.redAccent,
+                        fontSize: 13,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -138,8 +188,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     labelStyle: const TextStyle(color: Colors.grey),
                     filled: true,
                     fillColor: const Color(0xFF130F22),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.cyanAccent)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.cyanAccent),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -151,8 +207,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     labelStyle: const TextStyle(color: Colors.grey),
                     filled: true,
                     fillColor: const Color(0xFF130F22),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.cyanAccent)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.cyanAccent),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -165,8 +227,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     labelStyle: const TextStyle(color: Colors.grey),
                     filled: true,
                     fillColor: const Color(0xFF130F22),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Colors.cyanAccent)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: Colors.cyanAccent),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -176,18 +244,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     backgroundColor: Colors.cyanAccent,
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                   child: _isLoading
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black))
-                      : const Text('REGISTRARSE', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.black,
+                          ),
+                        )
+                      : const Text(
+                          'REGISTRARSE',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('¿Ya tienes cuenta? Inicia sesión', style: TextStyle(color: Colors.grey)),
+                  onPressed: _isLoading
+                      ? null
+                      : () {
+                          Navigator.of(context).pop();
+                        },
+                  child: const Text(
+                    '¿Ya tienes cuenta? Inicia sesión',
+                    style: TextStyle(color: Colors.grey),
+                  ),
                 ),
               ],
             ),

@@ -1,0 +1,52 @@
+name: LAGUN Mobile CI
+
+on:
+  push:
+    paths:
+      - 'lagun_mobile/**'
+      - '.github/workflows/lagun-mobile-ci.yml'
+  pull_request:
+    paths:
+      - 'lagun_mobile/**'
+      - '.github/workflows/lagun-mobile-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  flutter-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: lagun_mobile
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.0'
+          channel: stable
+          cache: true
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Analizar código
+        run: flutter analyze --no-fatal-infos
+
+      - name: Ejecutar pruebas y cobertura
+        run: flutter test --coverage --reporter expanded
+
+      - name: Guardar cobertura LCOV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lagun-mobile-lcov
+          path: lagun_mobile/coverage/lcov.info
+          if-no-files-found: warn

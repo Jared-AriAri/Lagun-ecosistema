@@ -7,132 +7,215 @@ import 'package:lagun_mobile/services/supabase_ticket_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
-  const userId = '38929a9c-e279-4bdd-900b-d252dade3f12';
-  const requestId = 'ec2f3b89-f551-4fb1-8c5e-52ce2e2ec19a';
-  const ticketId = 'd0b6b666-2c46-403c-ba7c-5a59e1eba380';
+  late SupabaseClient client;
+  late SupabaseTicketRepository repository;
+  late List<http.Request> requests;
 
-  Map<String, dynamic> ticket() => {
-    'user_id': userId,
-    'request_id': requestId,
-    'title': 'Prueba de idempotencia',
-    'description': 'Descripcion valida para comprobar reintentos',
-    'category': 'app',
-  };
-
-  SupabaseTicketRepository repositoryWith(
+  SupabaseTicketRepository createRepository(
     Future<http.Response> Function(http.Request) handler,
   ) {
-    final client = SupabaseClient(
+    client = SupabaseClient(
       'https://example.supabase.co',
       'test-public-key',
-      httpClient: MockClient(handler),
-    );
-
-    return SupabaseTicketRepository(client);
-  }
-
-  http.Response duplicateConflict(http.Request request) {
-    return http.Response(
-      jsonEncode({
-        'code': '23505',
-        'message':
-            'duplicate key value violates unique constraint '
-            '"support_tickets_user_request_unique"',
-        'details': 'Key (user_id, request_id) already exists.',
+      httpClient: MockClient((request) async {
+        requests.add(request);
+        return handler(request);
       }),
-      409,
-      headers: {'content-type': 'application/json'},
-      request: request,
     );
+
+    repository = SupabaseTicketRepository(client);
+    return repository;
   }
 
-  test('DEF-02-01: crea el ticket correctamente', () async {
-    var postCount = 0;
-
-    final repository = repositoryWith((request) async {
-      expect(request.method, 'POST');
-      expect(request.url.path, '/rest/v1/support_tickets');
-
-      postCount++;
-
-      final body = jsonDecode(request.body) as Map<String, dynamic>;
-
-      expect(body['request_id'], requestId);
-      expect(body['user_id'], userId);
-
-      return http.Response('', 201, request: request);
-    });
-
-    await repository.insertTicket(ticket());
-
-    expect(postCount, 1);
+  setUp(() {
+    requests = [];
   });
 
-  test('DEF-02-02: recupera el ticket ante un reintento duplicado', () async {
-    var postCount = 0;
-    var getCount = 0;
+  group('White Box - SupabaseTicketRepository', () {
+    test('WB-168: crea correctamente el repositorio Supabase', () async {
+      createRepository(
+        (request) async => http.Response(
+          '[]',
+          200,
+          headers: {'content-type': 'application/json'},
+          request: request,
+        ),
+      );
 
-    final repository = repositoryWith((request) async {
-      if (request.method == 'POST') {
-        postCount++;
-        return duplicateConflict(request);
-      }
+      expect(repository, isA<SupabaseTicketRepository>());
 
-      if (request.method == 'GET') {
-        getCount++;
+      expect(repository.client, same(client));
+      expect(requests, isEmpty);
+    });
 
+    test('WB-169: sin autenticación devuelve usuario nulo', () async {
+      createRepository(
+        (request) async => http.Response(
+          '[]',
+          200,
+          headers: {'content-type': 'application/json'},
+          request: request,
+        ),
+      );
+
+      expect(client.auth.currentUser, isNull);
+      expect(repository.currentUserId, isNull);
+      expect(requests, isEmpty);
+    });
+
+    test('WB-170: consulta tickets filtrados por usuario', () async {
+      const userId = 'usuario-wb170';
+
+      createRepository((request) async {
+        expect(request.method, 'GET');
         expect(request.url.path, '/rest/v1/support_tickets');
 
-        expect(request.url.queryParameters['request_id'], 'eq.$requestId');
+        expect(request.url.queryParameters['user_id'], 'eq.$userId');
+
+        expect(
+          request.url.queryParameters['order'],
+          'created_at.desc.nullslast',
+        );
 
         return http.Response(
-          jsonEncode({'id': ticketId, ...ticket()}),
+          jsonEncode([
+            {
+              'id': 'ticket-001',
+              'user_id': userId,
+              'title': 'Problema de noticias',
+              'status': 'open',
+            },
+            {
+              'id': 'ticket-002',
+              'user_id': userId,
+              'title': 'Problema de perfil',
+              'status': 'open',
+            },
+          ]),
           200,
-          headers: {'content-type': 'application/json'},
+          headers: {'content-type': 'application/json; charset=utf-8'},
           request: request,
         );
-      }
+      });
 
-      return http.Response('Metodo inesperado', 405, request: request);
+      final result = await repository.fetchTickets(userId);
+
+      expect(result, hasLength(2));
+
+      expect(result.every((ticket) => ticket['user_id'] == userId), isTrue);
+
+      expect(result.first['id'], 'ticket-001');
+      expect(result.last['id'], 'ticket-002');
+
+      expect(requests, hasLength(1));
     });
 
-    await repository.insertTicket(ticket());
+    test('WB-171: consulta sin resultados devuelve lista vacía', () async {
+      const userId = 'usuario-sin-tickets';
 
-    expect(postCount, 1);
-    expect(getCount, 1);
-  });
+      createRepository(
+        (request) async => http.Response(
+          '[]',
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+          request: request,
+        ),
+      );
 
-  test('DEF-02-03: rechaza request_id asociado a otros datos', () async {
-    var getCount = 0;
+      final result = await repository.fetchTickets(userId);
 
-    final repository = repositoryWith((request) async {
-      if (request.method == 'POST') {
-        return duplicateConflict(request);
-      }
+      expect(result, isEmpty);
+      expect(requests, hasLength(1));
 
-      if (request.method == 'GET') {
-        getCount++;
+      expect(requests.single.method, 'GET');
 
-        return http.Response(
+      expect(requests.single.url.path, '/rest/v1/support_tickets');
+
+      expect(requests.single.url.queryParameters['user_id'], 'eq.$userId');
+    });
+
+    test('WB-172: inserta un ticket con los datos correctos', () async {
+      createRepository(
+        (request) async => http.Response(
+          '',
+          201,
+          request: request,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        ),
+      );
+
+      const requestId = '123e4567-e89b-42d3-a456-426614174000';
+
+      final ticket = <String, dynamic>{
+        'user_id': 'usuario-wb172',
+        'request_id': requestId,
+        'title': 'Problema con una noticia',
+        'description': 'El contenido de la noticia no se muestra correctamente',
+        'category': 'content',
+        'status': 'open',
+      };
+
+      await repository.insertTicket(ticket);
+
+      expect(requests, hasLength(1));
+
+      final request = requests.single;
+
+      expect(request.method, 'POST');
+
+      expect(request.url.path, '/rest/v1/support_tickets');
+
+      final sentData = jsonDecode(request.body) as Map<String, dynamic>;
+
+      expect(sentData['user_id'], 'usuario-wb172');
+      expect(sentData['request_id'], requestId);
+
+      expect(sentData['title'], 'Problema con una noticia');
+
+      expect(sentData['description'], ticket['description']);
+
+      expect(sentData['category'], 'content');
+      expect(sentData['status'], 'open');
+
+      // Verifica que el repositorio conserva
+      // todos los campos sin alterar el contenido.
+      expect(sentData, ticket);
+    });
+
+    test('WB-173: propaga errores de acceso denegado de Supabase', () async {
+      const userId = 'usuario-sin-permiso';
+
+      createRepository(
+        (request) async => http.Response(
           jsonEncode({
-            'id': ticketId,
-            ...ticket(),
-            'title': 'Otro ticket diferente',
+            'code': '42501',
+            'message': 'permission denied for table support_tickets',
+            'details': null,
+            'hint': null,
           }),
-          200,
-          headers: {'content-type': 'application/json'},
+          403,
           request: request,
-        );
-      }
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        ),
+      );
 
-      return http.Response('Metodo inesperado', 405, request: request);
+      await expectLater(
+        repository.fetchTickets(userId),
+        throwsA(
+          isA<PostgrestException>()
+              .having((error) => error.code, 'código PostgreSQL', '42501')
+              .having(
+                (error) => error.message,
+                'mensaje de error',
+                contains('permission denied'),
+              ),
+        ),
+      );
+
+      expect(requests, hasLength(1));
+      expect(requests.single.method, 'GET');
+
+      expect(requests.single.url.queryParameters['user_id'], 'eq.$userId');
     });
-
-    await expectLater(
-      repository.insertTicket(ticket()),
-      throwsA(isA<StateError>()),
-    );
-
-    expect(getCount, 1);
   });
 }

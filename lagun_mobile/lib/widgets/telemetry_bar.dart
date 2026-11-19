@@ -26,17 +26,29 @@ class TelemetryBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildMetricItem("TIEMPO LECTURA", "${telemetry.readingTimeSec}s", Colors.cyanAccent),
+              _buildMetricItem(
+                "TIEMPO LECTURA",
+                "${telemetry.readingTimeSec}s",
+                Colors.cyanAccent,
+              ),
               _buildMetricItem(
                 "ESTRÉS",
                 "${telemetry.stressLevel}%",
-                telemetry.stressLevel > 70 ? Colors.redAccent : Colors.greenAccent,
+                telemetry.stressLevel > 70
+                    ? Colors.redAccent
+                    : Colors.greenAccent,
               ),
-              _buildMetricItem("SUEÑO", "${telemetry.sleepQuality}%", Colors.amberAccent),
+              _buildMetricItem(
+                "SUEÑO",
+                "${telemetry.sleepQuality}%",
+                Colors.amberAccent,
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isConnected ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
+                  color: isConnected
+                      ? Colors.green.withValues(alpha: 0.2)
+                      : Colors.orange.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -45,7 +57,9 @@ class TelemetryBar extends StatelessWidget {
                       width: 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: isConnected ? Colors.greenAccent : Colors.orangeAccent,
+                        color: isConnected
+                            ? Colors.greenAccent
+                            : Colors.orangeAccent,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -55,7 +69,9 @@ class TelemetryBar extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: isConnected ? Colors.greenAccent : Colors.orangeAccent,
+                        color: isConnected
+                            ? Colors.greenAccent
+                            : Colors.orangeAccent,
                       ),
                     ),
                   ],
@@ -71,16 +87,26 @@ class TelemetryBar extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.redAccent.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
+              border: Border.all(
+                color: Colors.redAccent.withValues(alpha: 0.5),
+              ),
             ),
             child: const Row(
               children: [
-                Icon(Icons.warning_amber_rounded, color: Colors.redAccent, size: 20),
+                Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.redAccent,
+                  size: 20,
+                ),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Alerta de Salud: Elevado estrés o bajo descanso. ¡Tómate una pausa!',
-                    style: TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.redAccent,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ],
@@ -95,12 +121,20 @@ class TelemetryBar extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            fontSize: 9,
+            color: Colors.grey,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: color),
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
         ),
       ],
     );
